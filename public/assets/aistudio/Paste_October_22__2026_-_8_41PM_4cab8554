@@ -1,0 +1,870 @@
+# LUMINA HOTEL SUITES — FULL UI & WORKFLOW AUDIT
+## Batch 3: Sidebar, Overview, Hotel Operations, Customer Management, POS, Restaurant, and Laundry
+
+### 1. Critical implementation instructions
+
+Audit the existing project before making changes. Inspect the current components, routes, mock data, shared styles, forms, tables, and existing workflows.
+
+**Implement these corrections directly. Do not return a plan or replace the current interface with a new design.**
+
+Preserve the existing visual design wherever it already meets the requirements. This is a targeted refinement, not a full redesign.
+
+Rules:
+- Keep Outfit as the font.
+- Maintain the muted-purple brand accent, pale-purple selected states, white surfaces, ash backgrounds, subtle shadows, and existing premium SaaS appearance.
+- Remove remaining peach/coral primary accents and inconsistent black primary CTA buttons in favour of the established muted-purple CTA.
+- Do not introduce gradients, glow effects, sparkle icons, or unnecessary decorative elements.
+- Use the existing icon library and suitable Lucide icons.
+- Keep table headers and column values on one line. When content exceeds the available width, use horizontal scrolling rather than wrapping.
+- Keep dropdowns rounded and styled consistently. Do not fall back to default browser styling.
+- Preserve working functionality outside the scope of these changes.
+- Use existing customer, booking, room, payment, order, and inventory records wherever possible.
+- Do not fabricate records or claim that backend integrations exist when they do not.
+
+## 2. Sidebar — restore the rib-cage design as an option
+
+I like the current sidebar too. Do not delete or redesign it. I want to be able to choose between two sidebar designs.
+
+### Sidebar design options
+
+Add a **Sidebar Appearance** setting under Hotel Settings with two options:
+
+1. **Standard Sidebar** — the existing sidebar design, preserved as it currently looks.
+2. **Rib-Cage Sidebar** — restore the earlier sidebar with its parent-child connector structure.
+
+Use a compact, polished selection control with a small visual preview of each sidebar if practical.
+
+The selected sidebar style must persist using the project's existing settings persistence mechanism. If no persistent settings mechanism exists, use a stable application-level setting appropriate to the current frontend architecture, and do not pretend it is saved to a backend.
+
+### Rib-cage sidebar requirements
+
+Restore the previous design in which child navigation items connect to their parent using curved, rib-like connector lines.
+
+For example, when Bookings is active:
+- Hotel Operations has a white fill, a subtle ash-grey outline of approximately 1–2 px, and a very soft inner shadow.
+- Bookings has a faint cool-purple background and muted-purple text/icon.
+- The active child should be visually distinct from the parent.
+- Do not add a right-side purple indicator line.
+- Do not add a purple parent dot when a child is active.
+- Preserve the existing navigation hierarchy, labels, icons, spacing, and other sections.
+
+The Standard Sidebar must remain available and must not inherit the rib-cage connector treatment.
+
+Switching styles must not reset navigation state, change routes, or remove menu items. The selected style should apply consistently across the entire application.
+
+## 3. Global header and Overview
+
+### A. Header alignment
+
+Remove the **All Hotel Branches** selector from the header. Lumina is currently configured as a single-branch hotel application.
+
+Replace that selector with a circular profile picture.
+
+- Use an existing appropriate profile image if available.
+- Otherwise, use a suitable neutral professional avatar.
+- Clicking the avatar should open a compact dropdown with the relevant profile/account options and a Log Out action.
+- Log Out must use the existing authentication flow if available. Do not simulate a successful logout if authentication is not implemented.
+
+Align the header's bottom boundary with the horizontal boundary at the bottom of the sidebar logo area. Adjust the header height and positioning so both lines meet cleanly.
+
+Do not unnecessarily change the rest of the header layout.
+
+### B. Overview date filter
+
+Keep the current Overview design and KPI cards.
+
+The global Overview date filter should offer:
+- Today
+- Last 7 Days
+- This Month
+- Custom Range
+
+Use a compact rounded dropdown rather than a segmented toggle.
+
+When Custom Range is selected, open the calendar directly. Do not insert a second rounded rectangle beside or inside the date control displaying a calendar icon and a prefilled date range.
+
+The calendar popup should contain the calendar and the necessary range-selection controls. Allow the user to select a start date and end date and click Apply. Keep Cancel and Clear where appropriate.
+
+Use the existing custom calendar styling, with compact dimensions, rounded corners, Outfit typography, muted-purple accents, and custom month/year navigation.
+
+### C. Overview filter behaviour
+
+The Overview's main date filter must affect:
+- The six KPI cards.
+- Revenue Trend.
+- Expenses.
+
+It must not change the content of Recent Bookings or Alerts & Exceptions.
+
+Recent Bookings should continue displaying a maximum of 10 rows, regardless of the selected Overview date range. Its View All action should open the complete bookings view.
+
+Alerts & Exceptions should display a maximum of 10 relevant alert rows. Add a clearly identifiable link or arrow below the list that opens a dedicated Notifications/Alerts section containing the full alert list.
+
+The Recent Bookings refresh action must not generate random bookings or arbitrary figures.
+
+### D. Independent chart filters
+
+The Revenue Trend chart's date and source filters must affect Revenue Trend only.
+
+The Expenses chart's date and category filters must affect Expenses only.
+
+Changing the Revenue Trend filter must not alter the Expenses chart. Changing the Expenses filter must not alter Revenue Trend.
+
+Keep the existing chart layouts, KPI cards, and other Overview elements unchanged unless a specific correction above requires a change.
+
+## 4. Hotel Operations — Bookings
+
+### A. Booking table
+
+Preserve the current table appearance but fix column wrapping and width.
+
+Required columns:
+- Booking ID
+- Guest Name
+- Room
+- Check-in
+- Check-out
+- Amount
+- Payment Status
+- Booking Status
+- Actions
+
+Keep each column heading on one line. In particular, Booking ID, Payment Status, and Booking Status must never break into multiple lines.
+
+Use a horizontally scrollable table container when the columns exceed the available width. Do not compress the columns until the text becomes unreadable.
+
+### B. Booking and payment statuses
+
+Keep booking status and payment status separate because they represent different things.
+
+**Booking Status**
+- Pending
+- Confirmed
+- Checked In
+- Checked Out
+- Cancelled
+
+Use the existing workflow and data model to determine valid transitions. A paid future reservation can still be Confirmed without being Checked In. A booking that has been cancelled must remain Cancelled even if its payment needs a refund or reconciliation.
+
+**Payment Status**
+- Paid
+- Unpaid
+
+Remove Partially Paid from the booking payment interface. This hotel booking workflow does not accept partial payments.
+
+Do not use Confirmed as a payment status. Confirmed is a booking status; Paid and Unpaid are payment statuses.
+
+Ensure the filters use these actual meanings:
+- Booking status filter: All Statuses, Pending, Confirmed, Checked In, Checked Out, Cancelled.
+- Payment status filter: All Payments, Paid, Unpaid.
+- Room Type filter: All Room Types plus configured room categories.
+
+Keep the dropdown dimensions compact and consistent. The Room Type dropdown must not be excessively long compared with the other filters.
+
+### C. Booking date filter
+
+Replace the existing date toggle with a rounded dropdown.
+
+Options:
+- Today
+- Last 7 Days
+- This Month
+- Custom Range
+
+Remove All Dates.
+
+Custom Range should open the calendar directly, without a second external date-range rectangle. Reuse the shared date picker.
+
+Label the control **Date Range**, not Stay Date Range.
+
+### D. Simplify the New Booking form
+
+The existing form is too crowded. Redesign its internal layout to be calmer, more compact, and properly aligned, without changing the overall application design.
+
+Use a clear vertical hierarchy and sensible two-column form rows where appropriate. Keep labels aligned, fields consistently sized, and enough spacing between logical groups.
+
+Fields in this order:
+
+1. Returning Guest Lookup
+2. Full Name
+3. Phone Number
+4. Email
+5. Room Type
+6. Room Selection
+7. Room Rate
+8. Number of Nights
+9. Check-in Date
+10. Check-in Time
+11. Check-out Date
+12. Check-out Time
+13. Payment Method
+14. Payment Status
+15. Booking Status
+16. Total Amount
+17. Confirm Reservation
+
+#### Returning Guest Lookup
+
+Keep it as the first field. It must be searchable and optional. Selecting an existing guest should fill the relevant guest information without creating a duplicate customer.
+
+Do not add a separate Address field or Secondary Phone Number field.
+
+Full Name is required. Phone Number and Email are not mandatory, so do not mark them as required. Do not append the word Optional to every field label.
+
+#### Room Type and Room Selection
+
+The user selects a configured room category first, such as Standard, Deluxe, Executive, or another category configured by the hotel.
+
+Then display available rooms belonging to that category for the selected stay dates.
+
+When a room is selected, populate its default room rate. Label the field **Room Rate**, not Nightly Room Rate.
+
+The rate should remain editable where the existing workflow permits negotiated pricing.
+
+#### Number of Nights
+
+Use a compact number control with minus and plus buttons. Remove the oversized or distracting numeric spinner treatment if present.
+
+Calculate the stay duration from the check-in and check-out dates. Keep the displayed duration and total consistent. Do not allow a negative duration or a conflicting date combination.
+
+#### Check-in and check-out
+
+Check-in Date is required.
+
+Check-in Time, Check-out Date, and Check-out Time may be left blank. Do not show the word Optional beside every label.
+
+Allow a future reservation to be created without treating the guest as already checked in.
+
+When a check-out date is entered, validate that it follows the check-in date.
+
+#### Custom time picker
+
+Replace the current poor time picker with a custom time-selection popup.
+
+It should provide:
+- An hour scroller covering 00 through 23.
+- A minute scroller covering 00 through 59.
+- A clear AM/PM selection if the interface uses a 12-hour display.
+
+Use a consistent internal time format and display it clearly. If using a 24-hour display, do not show a redundant AM/PM selector.
+
+Remove the current incomplete 07:00–22:00 time options. The user must be able to choose any valid time.
+
+#### Payment and booking fields
+
+Payment Method options:
+- Card
+- Bank Transfer
+- Cash
+
+Payment Status:
+- Paid
+- Unpaid
+
+Booking Status:
+- Pending
+- Confirmed
+- Checked In
+- Checked Out
+- Cancelled
+
+Keep the fields logically separate. Do not automatically change a future booking to Checked In simply because it has been paid.
+
+Remove:
+- Amount Paid as a separate form field.
+- Reservation Notes.
+- Address.
+- Secondary Phone Number.
+
+#### Total Amount
+
+Display Total Amount as the final calculated amount, formatted in Nigerian naira, for example `₦150,000`.
+
+Calculate it from the room rate and number of nights, taking account of the actual room rate entered.
+
+Place it clearly near the bottom of the form, followed by the primary **Confirm Reservation** button.
+
+Keep all fields properly aligned and avoid unnecessary summary cards, nested containers, or excessive bold text.
+
+### E. Booking details
+
+When viewing a booking, retain the relevant booking information, guest information, accommodation/stay schedule, and payment details.
+
+Rename **Folio & Payment Summary** to **Payment Summary**. Remove the term Folio from this booking detail presentation.
+
+Remove the Reservation Notes section.
+
+Keep working Edit and Delete actions. Deletion must use a confirmation step and follow the project's existing data-integrity rules. Do not silently delete related financial records or transaction history.
+
+## 5. Hotel Operations — Rooms & Pricing
+
+### A. Room Type button and category form
+
+Keep both Add Room Type and Add Room actions.
+
+Change the Add Room Type button icon to a suitable category/layers icon. Do not use a plus icon for this button.
+
+In the Room Types and Categories dialog:
+- Remove the subtitle about defining a room category.
+- Remove the note.
+- Present existing room categories in a two-column grid, not a long single vertical list.
+- Each category should display its category name and room count cleanly.
+
+The Add Room Type form must contain exactly two fields:
+1. Room Type Name.
+2. Number of Rooms in This Category.
+
+Do not ask for room price here. Do not include maximum stay duration, dates, or a pricing field.
+
+For example, the user may create Presidential Suites with five rooms.
+
+Prevent duplicate room-type names and validate the room count.
+
+### B. Add Room form
+
+The Add Room form should contain:
+- Room Number.
+- Room Type, selected from configured categories.
+- Operational Status.
+- Room Rate.
+- Maximum Capacity.
+- Floor/Wing, where needed.
+
+Remove:
+- Hotel Branch.
+- Housekeeper.
+- Maintenance Note.
+
+The room rate belongs to the individual room and should be entered when creating or editing the room, not when defining the category.
+
+### C. Room status and booking integration
+
+Keep useful room filters:
+- Available
+- Occupied
+- Cleaning
+- Maintenance
+
+Use distinct, meaningful icons for each status. Do not use sparkle icons. Available and Occupied must not share the same icon.
+
+Keep room type filtering.
+
+The room's operational status and its booking status must remain distinct.
+
+- A future reservation must not automatically make a room Occupied before check-in.
+- A guest checking in should cause the room to become Occupied.
+- After checkout, the room can move to Cleaning or another appropriate operational state.
+- A room under Maintenance or Cleaning must not be offered as available for a conflicting booking.
+- A room should return to Available only when the relevant operational conditions are satisfied.
+
+Use the actual booking dates, stay overlap, and room status to determine availability.
+
+## 6. Customer Management — Hotel Operations
+
+Keep Customer Management within Hotel Operations for this version of the application. Do not relocate it to a new top-level section.
+
+This CRM should primarily represent customers associated with room bookings. Keep the existing customer identity model and allow profiles to retain relevant activity from other services when that activity exists.
+
+### A. KPI cards
+
+Retain:
+- Total Customers
+- Returning Customers
+- Total Customer Revenue
+- New Customers
+
+Keep the existing date filter. Use the selected period to calculate period-sensitive metrics, while preserving lifetime metrics as lifetime values.
+
+### B. Remove manual profile creation
+
+Remove the Add Customer Profile button from the CRM page.
+
+The CRM should receive or reuse customer records through the existing booking and service workflows. Avoid unnecessary manual duplicate customer creation.
+
+If a walk-in customer is later identified through a legitimate workflow, reuse or create their record according to the existing customer identity rules.
+
+### C. Filters and sorting
+
+Provide:
+- Customer search.
+- Room Type filter, using configured room categories.
+- Date Range filter.
+- Sort options for Newest to Oldest and Highest Spender to Lowest Spender.
+
+Remove the generic All Statuses filter because the CRM is not intended to be a customer-status management dashboard.
+
+### D. Customer table
+
+Required columns:
+- Customer ID
+- Name
+- Phone Number
+- Email
+- Visits
+- Lifetime Revenue
+- Last Visit
+- Service Type
+- Actions
+
+Keep every heading on one line. Use horizontal scrolling where required.
+
+Remove the Status column.
+
+Service Type should accurately represent the customer's actual activity. A customer who has used multiple services may show multiple relevant services rather than being assigned a fabricated single category.
+
+### E. Customer profile
+
+Keep the View Customer Profile action.
+
+The profile should display:
+- Contact information.
+- Booking and room history.
+- Relevant Bar & POS activity.
+- Relevant Kitchen & Restaurant activity.
+- Relevant Laundry activity.
+- Visits and revenue derived from existing records.
+
+Do not invent transactions or duplicate customer profiles across services.
+
+## 7. Bar & POS
+
+### A. Checked-in guest search
+
+Fix the guest search. It currently matches guest names but fails to return results when searching by room number.
+
+The checked-in guest lookup must search by:
+- Guest name.
+- Room number, including direct entries such as `301` or `Room 301`.
+
+Use the existing booking and room records. Only eligible currently checked-in guests should appear for in-house room orders.
+
+Remove the second redundant search box from the guest dropdown. The search input in the main guest-selection form should be the only search field.
+
+Selecting a result must correctly identify the guest and room before items are added to the order.
+
+### B. Current Bar Order workflow
+
+Keep the existing product selection, current order, quantity controls, and totals.
+
+The intended workflow is:
+
+1. Choose Hotel Guest or Walk-in Customer.
+2. If Hotel Guest, search by name or room number and select the correct in-house guest.
+3. Add beverages and set quantities.
+4. Apply tax or discount where supported and authorised.
+5. Select Card, Bank Transfer, or Cash.
+6. Record the payment status as Paid or Unpaid.
+7. Save the transaction or invoice.
+
+Support unpaid invoices without incorrectly marking them as paid. Unpaid transactions must be included in the Alerts/Notifications workflow.
+
+Walk-in customers should receive a unique, stable reference ID generated once when the transaction/customer record is created. Do not regenerate it during rerenders.
+
+### C. Beverage selection and quick picks
+
+Remove the existing beverage category toggles such as Wine & Champagne, Spirits, Beer & Cider, and Soft Drinks & Mixers.
+
+Beverages no longer rely on manually created product categories.
+
+Provide:
+- One product search field.
+- A compact single row of up to four quick-pick controls: All Beverages plus the three most relevant individual quick picks.
+
+Quick picks should use actual beverage records and meaningful sales-frequency data where available. Do not randomly assign products or hardcode a false popularity ranking. If there is insufficient sales history, use an appropriate configured set of frequently used products or show the available items without inventing popularity.
+
+Each beverage product card should show:
+- Beverage icon.
+- Available quantity with a subtle ash background.
+- Beverage name.
+- A faint divider.
+- Selling price.
+- Add button.
+
+Remove the small category label and SKU text currently shown on the product cards. The primary visible product label should be the beverage name.
+
+### D. Bar Sales Ledger
+
+Keep the existing KPI cards and transaction table.
+
+The table should show:
+- Transaction ID
+- Date & Time
+- Customer/Room
+- Item Summary
+- Amount
+- Payment Method
+- Payment Status
+- Staff
+- Actions
+
+Keep every column heading on one line. Use a horizontally scrollable table rather than wrapping headers.
+
+Keep the existing ledger actions and calculations.
+
+## 8. Kitchen & Restaurant
+
+### A. Food search and quick picks
+
+Remove the existing manually created menu category toggles such as Starters, Main Course, Grills & Seafood, and Sides & Pasta.
+
+The food inventory now contains individual sellable food items. The POS must display those actual items, not predefined categories or unrelated sample foods.
+
+Provide:
+- A search field.
+- A compact single row of up to five quick-pick controls: All Menu plus the four most relevant individual food quick picks.
+
+Quick picks should be derived from actual food items and sales frequency where available. Do not invent popularity rankings.
+
+### B. Food product cards
+
+Use the same visual pattern as Bar & POS, adapted for food.
+
+Each card should contain:
+1. A suitable food icon or existing appropriate food image, if available.
+2. Available portions/quantity in a small rounded ash-background label.
+3. Food name.
+4. A faint divider.
+5. Selling price.
+6. Add button.
+
+Remove:
+- Category labels such as Grills & Seafood or Main Course.
+- Cooking-time labels such as 18 minutes.
+- Long marketing descriptions of dishes.
+- The Recipe Depletion per Portion panel.
+- The large portion-availability detail rectangle.
+- Unnecessary SKU text on the product cards.
+
+Do not invent recipes, ingredient depletion, or preparation times. Recipe and ingredient deduction logic can be implemented later when the necessary recipe data exists.
+
+### C. Current Kitchen Order workflow
+
+Match the order workflow to Bar & POS.
+
+- Choose Hotel Guest or Walk-in Customer.
+- For a hotel guest, search by name or room number using one search input.
+- Show only eligible currently checked-in guests for room orders.
+- For walk-ins, generate a stable reference ID.
+- Add food items, adjust quantities, and calculate totals.
+- Apply supported tax/discount logic where appropriate.
+- Select payment method and Paid/Unpaid status.
+- Save the order or invoice.
+
+Unpaid orders must enter the Alerts/Notifications workflow. Do not mark an unpaid order as paid automatically.
+
+### D. Kitchen Order Ledger
+
+Keep the existing KPI cards and table layout.
+
+Add a search bar and a compact rounded Payment Status dropdown with:
+- All Payments
+- Paid
+- Unpaid
+
+Use these actual payment states consistently.
+
+Keep the current readable one-line table header design. Do not introduce unnecessary changes to the existing ledger.
+
+## 9. Global date-filter consistency
+
+Date-filter styling and behaviour have become inconsistent across the application. Standardise all date filters that already exist or were explicitly requested.
+
+**Use a dropdown rather than a segmented toggle for date selection throughout this audit.**
+
+Standard options:
+- Today
+- Last 7 Days
+- This Month
+- Custom Range
+
+Use the label Date Range unless a more specific label is genuinely necessary.
+
+Custom Range must:
+- Open the shared custom calendar directly.
+- Avoid a second external date-range rectangle.
+- Allow selection of start and end dates.
+- Include clear Apply and Cancel actions.
+- Use rounded corners and consistent Outfit/purple styling.
+- Avoid native browser styling.
+
+Do not add date filters to pages that do not need them. In particular, Rooms & Pricing should not receive a new date filter unless an existing project requirement already calls for one.
+
+Different filters must remain independent. A date change in one chart or module must not unexpectedly change another module's state.
+
+## 10. Laundry Logger
+
+### A. KPI cards and date filter
+
+Retain these four KPI cards:
+- Total Laundry Orders
+- Orders In Progress
+- Ready for Collection
+- Laundry Revenue
+
+Keep the standard Overview KPI height and styling.
+
+Place a compact rounded Date Range dropdown horizontally alongside the Laundry Logger heading and Log Laundry Order button.
+
+Use the shared date options: Today, Last 7 Days, This Month, and Custom Range.
+
+The selected date range should update the four KPI figures and relevant order records.
+
+### B. Remove congested table filters
+
+Remove the existing row of crowded toggle-style service filters.
+
+Move the search bar to the top of the table. Keep a compact Service Type dropdown and a Progress dropdown beside it.
+
+Service Type should filter by the actual service recorded on the garment.
+
+Progress options should cover the legitimate workflow stages:
+- Received
+- Washing
+- Drying
+- Ironing
+- Ready for Collection
+- Collected
+
+If a stage is not supported by the current data model, implement it consistently before exposing it as a filter. Do not allow the interface to display a status that the underlying order cannot store.
+
+### C. Laundry table
+
+Replace the current table columns with:
+
+1. Order ID
+2. Customer
+3. Address
+4. Garment
+5. Service
+6. Pickup Date
+7. Amount
+8. Payment Status
+9. Progress
+10. Actions
+
+Keep all column headings on one line. Use horizontal scrolling where needed.
+
+**Order ID:** automatically generated and stable.
+
+**Customer:** show the customer's name. Do not place the room number in the customer column.
+
+**Address:** for an in-house hotel guest, display the room number, such as Room 201. For a walk-in customer, display the entered delivery address. Do not combine Room and Delivery Address into a long field label.
+
+**Garment:** show a concise description such as “10 shirts.” Avoid unnecessary multilayer descriptions.
+
+**Service:** show the actual service, such as Washing, Ironing, Dry Cleaning, or the relevant combined service.
+
+**Pickup Date:** show the expected ready/pickup date.
+
+**Amount:** show the order total.
+
+**Payment Status:** use Paid or Unpaid. Remove Partially Paid from the laundry payment workflow.
+
+**Progress:** show the actual workflow state and allow appropriate progress updates through the existing Actions menu or a compact dropdown.
+
+Provide a clear action to mark an eligible ready order as collected. Record the collection state consistently so it appears correctly in Laundry Storage.
+
+### D. Log Laundry Order form
+
+The form should be compact, properly aligned, and much less crowded.
+
+#### Customer mode
+
+Provide two modes:
+- Existing Hotel Guest
+- Walk-in Customer
+
+Do not show guest recommendations or quick-pick customer chips.
+
+For Existing Hotel Guest:
+- Provide a single searchable field that searches by guest name and room number.
+- Do not show a long dropdown of suggested customers before the user searches.
+- Selecting a guest fills the name, phone number, and delivery address automatically.
+- For an in-house guest, the delivery address is their room number.
+
+For Walk-in Customer:
+- Allow manual entry of customer name, phone number, and delivery address.
+- Do not require a hotel room.
+
+Keep the guest information fields aligned in a sensible form grid.
+
+#### Garment Items
+
+Use the section heading **Garment Items**.
+
+Do not place garment name, service type, quantity, unit price, and line total in one congested horizontal row.
+
+For each garment item, use a clear two-row layout:
+
+First row:
+- Garment Name
+- Service Type
+
+Second row:
+- Quantity
+- Total Price for that garment line
+
+Allow multiple garment items per order.
+
+Service Type options should include the relevant supported services, such as:
+- Washing
+- Ironing
+- Washing & Ironing
+- Dry Cleaning
+- Starching, if supported
+
+Use a custom rounded dropdown, not default HTML styling.
+
+Quantity records how many garments were received. The entered price is the **total price for that garment line**, not a price per garment.
+
+For example, if the customer brings 10 shirts and the staff enters ₦10,000 as the total price for those shirts, the system must calculate ₦10,000, not ₦100,000.
+
+Remove the separate Line Total field because the entered price already represents the line total.
+
+#### Remaining fields
+
+After the garment entries, provide:
+- Ready Date
+- Payment Method
+- Payment Status
+
+Payment methods:
+- Card
+- Bank Transfer
+- Cash
+
+Payment status:
+- Paid
+- Unpaid
+
+Remove:
+- Amount Paid as a separate field.
+- Partial-payment status and balance fields.
+- Special Care Note.
+- Rack Storage Location.
+
+At the bottom, show a clear calculated **Order Total**, followed by Create Order.
+
+Validate the required fields and ensure the total is the sum of the manually entered garment-line totals.
+
+## 11. Laundry Storage
+
+Keep the current two-view structure:
+- Awaiting Collection
+- Collected
+
+Add an All view if useful for viewing both sets together without duplicating records.
+
+This page is a collection register, not a second KPI dashboard. Do not add KPI cards or revenue metrics.
+
+### A. Search, sorting, and pagination
+
+Provide a search field that can find records by:
+- Order ID
+- Customer name
+- Phone number
+- Garment item/description
+
+Add a compact sort dropdown for Newest to Oldest and Oldest to Newest, based on the relevant order or received date.
+
+Do not add a date filter if sorting and search are sufficient.
+
+Use pagination rather than displaying an unlimited number of records. Keep page controls simple and readable.
+
+### B. Storage table
+
+Use these columns:
+- Order ID
+- Customer
+- Phone Number
+- Number of Garments
+- Garment Description
+- Date Received
+- Pickup Date
+- Collection Status
+- Actions
+
+Keep headings on one line and use horizontal scrolling when necessary.
+
+Collection Status should be a read-only display showing Ready for Collection or Collected.
+
+**Do not provide a Mark Collected action in Laundry Storage.** Collection is updated from Laundry Logger. Storage reflects that state and keeps the relevant history.
+
+When an order is marked collected in Laundry Logger, the Storage table should update accordingly without requiring duplicate data entry.
+
+### C. Laundry CRM
+
+Add a Laundry CRM view only if the existing navigation and customer data model can support it without creating a second, disconnected customer database.
+
+It should follow the same restrained CRM design principles used in Customer Management:
+- Searchable customer table.
+- Customer identity and contact details.
+- Laundry visits/orders.
+- Lifetime laundry revenue derived from recorded orders.
+- Last laundry visit.
+- View customer profile.
+
+Do not create duplicate customers just because they have used Laundry. Reuse the shared customer identity model.
+
+Keep this as a focused laundry-customer view rather than duplicating the entire hotel CRM. If adding a separate navigation item requires a major restructuring or would exceed this implementation batch, implement the reusable data/view foundation first and leave the extra navigation item for the next pass.
+
+## 12. Final verification checklist
+
+Before finishing, verify:
+
+### Sidebar and header
+- Both sidebar styles can be selected under Hotel Settings.
+- Rib-cage connector styling matches the earlier design.
+- Switching sidebar styles preserves navigation and state.
+- All Hotel Branches has been removed from the header.
+- Profile avatar dropdown opens and the existing logout flow is preserved.
+- Header and sidebar logo boundary align.
+
+### Overview
+- Main date filter affects only the KPI cards, Revenue Trend, and Expenses.
+- Revenue Trend and Expenses have independent filters.
+- Recent Bookings remains limited to 10 records.
+- Alerts & Exceptions remains limited to 10 records and links to the full Alerts/Notifications view.
+
+### Bookings and Rooms
+- Table headings do not wrap.
+- Booking and payment statuses remain separate.
+- The booking form is aligned and compact.
+- Total booking amount is calculated correctly in naira.
+- Any future reservation does not mark a room Occupied before check-in.
+- Room types require only a name and room count.
+- Room status icons are distinct and no sparkle icon remains.
+
+### Customer Management
+- Add Customer Profile has been removed.
+- Customer search, room-type filter, date filter, sorting, and customer profile view work.
+- Lifetime revenue and visits use the actual customer records.
+
+### Bar & POS and Kitchen & Restaurant
+- Guest search works by name and room number.
+- Redundant guest search inputs have been removed.
+- Walk-in IDs remain stable.
+- Product cards show only the intended content.
+- Quick picks use real product data.
+- Quantities, tax/discounts where supported, totals, and payment states calculate correctly.
+- Unpaid invoices/orders are included in Alerts/Notifications.
+- Ledger columns remain on one line.
+
+### Laundry
+- Date filtering is consistent.
+- Existing guest search does not display unsolicited quick picks.
+- Garment line pricing is not multiplied by quantity.
+- Paid/Unpaid is used consistently.
+- Workflow transitions are valid.
+- Ready orders and collected orders appear in the correct Storage view.
+- Storage does not independently modify collection status.
+- Pagination, search, and sorting work.
+
+### Quality assurance
+- No new console errors.
+- No unrelated sections have been redesigned.
+- No working records or existing customer relationships have been deleted.
+- No fake backend functionality has been introduced.
+- All primary CTAs use the consistent muted-purple brand colour.
+
+**Scope boundary:** Complete only the sidebar, Overview, Hotel Operations, Customer Management, Bar & POS, Kitchen & Restaurant, and Laundry changes listed here. Stop before starting the remaining Inventory, Finance & Intelligence, and Administration audit work.

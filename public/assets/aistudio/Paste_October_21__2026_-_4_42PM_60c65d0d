@@ -1,0 +1,1165 @@
+# MASTER BUILD PROMPT — LUMINA HOTEL SUITES
+
+## 1. PROJECT OBJECTIVE
+
+Build a complete, premium, frontend-only hotel management dashboard named **Lumina Hotel Suites**.
+
+This is a comprehensive hotel operations and management application intended for hotel owners, managers, accountants, front-desk staff, housekeeping teams, restaurant staff, inventory officers, and laundry staff.
+
+The primary purpose is to help hotel management monitor:
+
+- Hotel bookings, room availability, and occupancy.
+- Guest information, guest history, and customer rankings.
+- Bar and restaurant sales.
+- Laundry operations and garment storage.
+- Beverages, food ingredients, supplies, and stock movements.
+- Revenue, expenses, profitability, and audit activity.
+- Staff, permissions, hotel settings, and optional modules.
+
+Implement the entire frontend in one coherent application. Do not build only the Overview page or a small demonstration.
+
+**Every module listed in this specification must have a complete, professionally designed interface, realistic mock data, working navigation, meaningful interactions, and consistent visual quality.**
+
+## 2. TECHNOLOGY AND IMPLEMENTATION
+
+Use the following stack:
+
+- React with TypeScript.
+- Vite.
+- Tailwind CSS.
+- Material UI where it improves complex interface components.
+- Recharts for data visualization.
+- Lucide React for general interface icons.
+- Icons8 Glass icons for suitable decorative or module-specific icons, using verified assets or an existing supported integration.
+
+Do not invent package names or install an unverified Icons8 icon library. If a suitable Icons8 Glass asset is unavailable, use Lucide React consistently rather than emoji icons or unrelated futuristic icon packs.
+
+Build a frontend-only application. Do not implement a backend, database server, authentication server, payment gateway, or external API.
+
+Use a centralized, shared mock-data layer and React state so that records created or edited in one module appear in the relevant modules elsewhere. Keep the data model structured so a real backend could be connected later.
+
+Do not hardcode separate, conflicting versions of the same guest, booking, room, inventory item, sale, or financial transaction in different pages.
+
+## 3. DESIGN REFERENCES
+
+I have supplied selected UI reference images and design links.
+
+Study these references before implementation. Use them to understand modern dashboard composition, spacing, information hierarchy, data tables, Gantt timelines, POS interfaces, inventory management, booking management, and card layouts.
+
+Use the references as design inspiration, not as a reason to reproduce another product exactly.
+
+The written Lumina Hotel Suites specification takes precedence whenever a reference conflicts with the required navigation, brand styling, business logic, or interaction requirements.
+
+Do not crop, distort, stretch, or misuse supplied reference images. If the reference is a screenshot, study the complete composition and adapt the useful patterns to the actual application.
+
+## 4. VISUAL DESIGN SYSTEM
+
+### Brand identity
+
+Product name: **Lumina Hotel Suites**
+
+Primary accent: **#FDBCAC**, a soft peach.
+
+Use the peach accent selectively for active navigation, selected controls, restrained chart highlights, primary actions, and important interface accents.
+
+Supporting colours:
+
+- Canvas: light ash or warm off-white.
+- Main surfaces: white.
+- Main text: charcoal.
+- Secondary text: muted grey.
+- Positive financial results: restrained green.
+- Negative financial results: restrained red.
+- Warnings: muted amber.
+- Neutral statuses: subtle grey.
+- Secondary chart categories: a balanced, accessible set of subdued colours.
+
+Do not make every component peach. Maintain a mature, understated palette.
+
+### Typography
+
+Use **Outfit exclusively** throughout the application. Do not introduce Ubuntu, Urbanist, Space Grotesk, or monospaced display fonts.
+
+Use a clear hierarchy between page titles, section headings, KPI figures, table content, labels, and supporting text.
+
+### Overall aesthetic
+
+The application must look like a premium, mature hotel-management SaaS product.
+
+Use:
+
+- Spacious layouts.
+- Clean white surfaces on a light ash background.
+- Generous but controlled spacing.
+- Rounded cards and controls.
+- Soft, subtle shadows.
+- Carefully aligned typography.
+- Restrained colour.
+- Consistent icon sizing.
+- Clear information hierarchy.
+- Subtle hover and selection states.
+- Professional charts and tables.
+
+Avoid:
+
+- Gradients.
+- Glows and halos.
+- Glassmorphism backgrounds.
+- Neon colours.
+- Excessive bold text.
+- Emoji icons.
+- Oversized decorative illustrations.
+- Futuristic visual effects.
+- Unnecessary outlines around containers.
+- Excessive nested cards.
+- Inconsistent corner radii.
+- Dense, cramped layouts.
+- Randomly changing the visual language between modules.
+
+Use borders only when they serve a clear functional purpose, such as separating table rows or defining an input boundary.
+
+### KPI cards: mandatory double-surface design
+
+Every KPI card throughout the application must use the same double-surface treatment.
+
+The outer container is a softly tinted ash/off-white rounded shell. Inside it is a white rounded content card.
+
+Keep the gap between the outer shell and inner white card at approximately **1px**. Do not create a large inset or make the two surfaces look disconnected.
+
+Use an outer radius around 20–24px and a slightly smaller inner radius. Avoid visible borders and use subtle depth rather than heavy shadows.
+
+Each KPI should contain only the information needed to communicate its metric clearly:
+
+- Metric label.
+- Main value.
+- A suitable icon.
+- Optional comparison, trend, or supporting text when meaningful.
+
+Do not overcrowd KPI cards with multiple unrelated statistics. Do not show both a redundant mini-chart and excessive supporting metrics.
+
+Format large values intelligently. For example, use 99K for 99,000, 100K for 100,000, and ₦1.2M for ₦1,200,000 where compact formatting improves readability. Preserve full precision in detailed tables and tooltips.
+
+Use green for positive financial movement and red for negative movement where appropriate. Do not assume every increase is positive; an increase in expenses, for example, should not automatically be presented as favourable.
+
+Apply this KPI treatment consistently across Overview, Bookings, Guest Management, POS, Laundry, Inventory, Finance, and Administration.
+
+### Forms, dropdowns, and overlays
+
+Every form field must have a visible label and a helpful placeholder where appropriate.
+
+All dropdowns, their option lists, date pickers, autocomplete menus, popovers, drawers, confirmation dialogs, and modals must follow the same rounded visual system.
+
+Do not rely on the browser's default sharp-edged dropdown styling. Use a custom React dropdown or a properly styled Material UI component.
+
+Every interactive control must have appropriate focus, hover, disabled, selected, validation, and loading states where relevant.
+
+## 5. APPLICATION SHELL AND NAVIGATION
+
+Create a persistent application shell with:
+
+- Left navigation sidebar.
+- Top header.
+- Main content area.
+- Responsive mobile navigation.
+- Consistent page padding and content width.
+
+### Header
+
+Include:
+
+- Lumina Hotel Suites branding.
+- Branch or hotel-location selector.
+- Global search.
+- Notifications.
+- User avatar.
+- User name and role.
+- Any contextually useful page actions.
+
+Give the header sufficient top padding and breathing room without making it excessively tall.
+
+### Sidebar structure
+
+Use this exact navigation hierarchy:
+
+**Overview**
+
+**Hotel Operations**
+- Bookings
+- Rooms
+- Reports
+
+**Guest Management**
+- CRM
+- Customer Rankings
+
+**Sales & Services**
+- Bar & POS
+- Kitchen & Restaurant
+
+**Laundry**
+- Laundry Logger
+- Storage
+
+**Inventory**
+- Beverages
+- Food Inventory
+- Supplies
+- Stock Movements
+
+**Finance & Intelligence**
+- Expenses
+- Reports
+
+**Administration**
+- Staff & Permissions
+- Hotel Settings
+- Optional Modules
+
+Do not add a generic “Main” navigation group.
+
+### Parent-child navigation design
+
+Create a distinctive curved, rib-like connector between parent navigation items and their child links.
+
+Use carefully drawn SVG curves or equivalent CSS/SVG paths. The connectors must visually branch from a vertical spine toward each child row.
+
+Do not use arrow icons or ordinary square elbow connectors as a substitute for the requested rib-like design.
+
+The sidebar must support:
+
+- Expanded and collapsed desktop states.
+- Mobile drawer navigation.
+- Clear active parent and child states.
+- Rounded, softly tinted active backgrounds.
+- Stronger accent colour for active icons and text.
+- A restrained active indicator.
+- Tooltips when collapsed.
+- Persistent navigation state while switching modules.
+
+When a child page is active, its parent must also appear active or expanded.
+
+Every navigation item must open its corresponding page. Do not create dead links or empty sections.
+
+## 6. ROUTING
+
+Implement proper client-side routing, preferably using React Router.
+
+Each page must have a meaningful URL, for example:
+
+- `/overview`
+- `/hotel-operations/bookings`
+- `/hotel-operations/rooms`
+- `/hotel-operations/reports`
+- `/guest-management/crm`
+- `/guest-management/customer-rankings`
+- `/sales-services/bar-pos`
+- `/sales-services/kitchen-restaurant`
+- `/laundry/logger`
+- `/laundry/storage`
+- `/inventory/beverages`
+- `/inventory/food`
+- `/inventory/supplies`
+- `/inventory/stock-movements`
+- `/finance/expenses`
+- `/finance/reports`
+- `/administration/staff`
+- `/administration/hotel-settings`
+- `/administration/optional-modules`
+
+You may choose a consistent URL convention, but it must remain readable and predictable.
+
+Refreshing a nested route must not break the frontend when running in the supported development environment.
+
+## 7. OVERVIEW DASHBOARD
+
+The Overview is the main hotel-owner dashboard.
+
+Page title: **Overview**
+
+Subtitle: “A summary of your hotel performance and operations.”
+
+Include a date filter with:
+
+- Today.
+- Last 7 Days.
+- This Month.
+- Custom Range.
+
+### KPI cards
+
+Display six KPI cards:
+
+1. Total Revenue.
+2. Total Bookings.
+3. Occupancy.
+4. Available Rooms.
+5. Net Profit.
+6. Expenses.
+
+All values must be calculated from the shared mock data and selected date range wherever applicable.
+
+### Revenue Trend
+
+Create a polished area chart showing total revenue over time.
+
+Include a date-range control. The horizontal axis represents time and the vertical axis represents monetary value.
+
+The chart must respond to the selected date range. Tooltips should display readable dates and properly formatted amounts.
+
+### Revenue by Department
+
+Create a donut or pie chart showing revenue distribution across applicable hotel departments, such as:
+
+- Rooms.
+- Bar & POS.
+- Kitchen & Restaurant.
+- Laundry.
+- Other configured revenue sources.
+
+Provide a clear legend and distinct, restrained colours.
+
+Avoid double-counting the same transaction across multiple revenue sources.
+
+### Lower dashboard sections
+
+Include three coordinated sections:
+
+**Room Status**
+- Available.
+- Occupied.
+- Cleaning.
+- Maintenance.
+
+**Recent Bookings**
+- Booking ID.
+- Guest.
+- Room.
+- Check-in date.
+- Amount.
+- Status.
+
+**Alerts**
+- Low inventory.
+- Unpaid balances.
+- Upcoming check-ins.
+- Overdue check-outs.
+- Maintenance issues.
+- Laundry ready for collection.
+- Other meaningful operational exceptions.
+
+Use subtle ash row separators, comfortable spacing, faint grey row-hover backgrounds, and readable status badges. These sections should feel like useful activity and notification feeds rather than generic plain cards.
+
+## 8. HOTEL OPERATIONS
+
+### A. Bookings
+
+Build a complete booking-management interface.
+
+#### KPI cards
+
+Include relevant booking metrics such as:
+
+- Active Bookings.
+- Total Bookings.
+- Cancelled or Expired Bookings.
+- Booking Revenue.
+- Available Rooms.
+
+Clearly distinguish booking counts from financial metrics.
+
+#### Booking table
+
+Include columns for:
+
+- Booking ID.
+- Guest Name.
+- Room.
+- Check-in.
+- Check-out.
+- Amount.
+- Payment Status.
+- Booking Status.
+- Actions.
+
+Include search, date filtering, booking-status filters, payment-status filters, sorting, pagination, and create/edit/view/delete actions.
+
+Use confirmation dialogs for destructive actions.
+
+#### Create booking form
+
+Include:
+
+- Guest name.
+- Phone number — required.
+- Email — optional.
+- Address — optional.
+- Room selection.
+- Check-in date and time.
+- Check-out date and time or number of nights.
+- Room rate.
+- Total amount.
+- Payment method.
+- Payment status.
+- Booking status.
+- Notes.
+
+Generate unique booking and guest IDs automatically.
+
+Allow unpaid or partially paid reservations. Do not force every booking to be paid at creation.
+
+Validate required fields, date order, room availability, and overlapping active bookings.
+
+Prevent conflicting active reservations for the same room. A checkout date is a boundary, not an additional occupied night. A reservation from October 20 to October 23 occupies the nights of October 20, 21, and 22.
+
+Keep booking status and operational room status separate. A booking being confirmed does not automatically mean a room is currently occupied.
+
+#### Booking timeline / Gantt view
+
+This is a mandatory feature. Provide both **Table View** and **Timeline View** with a clear view switcher.
+
+The timeline must include:
+
+- A pinned room-number column on the left.
+- Dates along the horizontal axis.
+- One row per room.
+- Booking bars spanning the relevant nights.
+- Horizontally scrollable dates.
+- Vertically scrollable room rows.
+- A sticky date header.
+- Previous and next navigation.
+- A Today shortcut.
+- A date-range selector.
+- Search and filters for room, booking status, and room type.
+- A clear indication of the current date.
+- A legend for relevant booking statuses.
+
+Booking bars must be clickable and have a useful hover tooltip.
+
+Clicking a booking opens a side drawer or modal containing:
+
+- Booking ID.
+- Guest information.
+- Room and room type.
+- Check-in and checkout.
+- Number of nights.
+- Rate and total.
+- Amount paid.
+- Outstanding balance.
+- Payment method and status.
+- Booking status.
+- Notes.
+- Relevant actions.
+
+Edits made in the booking table must immediately update the timeline, and edits made through the timeline must update the table.
+
+Do not implement a decorative Gantt chart that is disconnected from booking data.
+
+### B. Rooms
+
+Build a room-management page that prioritizes visual room cards instead of a dense table.
+
+Allow the user to define room types before creating rooms.
+
+Example room types:
+
+- Standard.
+- Deluxe.
+- Executive.
+- Suite.
+
+Room-type fields may include name, description, default rate, capacity, and relevant amenities.
+
+Individual room fields:
+
+- Room number.
+- Room type.
+- Operational status.
+- Rate.
+- Capacity.
+- Notes.
+
+Room statuses:
+
+- Available.
+- Occupied.
+- Cleaning.
+- Maintenance.
+
+Use a four-column desktop grid where screen width permits, with approximately six room cards per page and pagination or previous/next controls.
+
+Each room card should include the room number, type, suitable icon, capacity, rate, status badge, and edit/delete actions.
+
+Ensure room status changes are reflected in Overview and booking availability.
+
+### C. Hotel Operations Reports
+
+Build a complete reporting interface with:
+
+- Date-range filters.
+- Booking totals.
+- Occupancy trends.
+- Room revenue.
+- Booking-status breakdown.
+- Room-type performance.
+- Relevant tables and charts.
+- Branch filters where supported.
+- Export-to-CSV interaction using frontend-generated data.
+
+Report calculations must use shared booking and room records.
+
+## 9. GUEST MANAGEMENT
+
+### A. Guest CRM
+
+Include KPI cards for:
+
+- Total Guests.
+- Returning Guests.
+- Total Guest Revenue.
+- New Guests.
+
+Create a guest table with:
+
+- Guest ID.
+- Name.
+- Phone.
+- Email.
+- Number of Visits.
+- Lifetime Revenue.
+- Last Visit.
+- Guest Type.
+- Status.
+- Actions.
+
+Support search, filters, sorting, pagination, create/edit/view, and deletion where appropriate.
+
+A guest profile drawer should show:
+
+- Contact information.
+- Booking history.
+- Number of visits.
+- Lifetime spend.
+- Last visit.
+- Outstanding balances where applicable.
+- Internal notes.
+
+Guests created during booking must appear in the CRM automatically.
+
+Match guests carefully using a stable guest ID and appropriate contact matching. Do not create duplicate guest records each time the same person makes a booking.
+
+### B. Customer Rankings
+
+Create a customer-ranking page with selectable ranking criteria:
+
+- Highest lifetime spending.
+- Most visits.
+- Highest average spend.
+- Most recent visits.
+
+Include relevant KPIs, ranking tables, clear rank indicators, search, date filters, and guest-profile access.
+
+Calculate rankings from the shared guest and booking data rather than hardcoding ranks.
+
+## 10. SALES & SERVICES
+
+Create two distinct but visually consistent POS modules.
+
+### A. Bar & POS
+
+Build a practical point-of-sale interface inspired by the supplied POS references.
+
+Include:
+
+- Product search and autocomplete.
+- Product categories.
+- Product cards or a clear product list.
+- Product image or suitable icon where useful.
+- Available stock.
+- Unit price.
+- Quantity controls.
+- Cart.
+- Subtotals.
+- Applicable discounts or taxes where configured.
+- Total amount.
+- Payment method.
+- Payment status.
+- Complete Sale action.
+- Receipt or transaction summary.
+- Sales ledger.
+
+Support two customer types:
+
+1. Hotel guest, with the option to charge an eligible transaction to a room.
+2. Walk-in customer.
+
+For room charges, require a valid guest or room selection.
+
+Use inventory prices and stock as the source of truth. Validate stock before completing a sale. Do not allow a sale to exceed available stock.
+
+Completing a sale must:
+
+- Generate a unique transaction ID.
+- Create a sales record.
+- Record its items and quantities.
+- Update payment information.
+- Deduct stock exactly once.
+- Create the corresponding stock-movement record.
+- Update relevant revenue and sales summaries.
+
+Avoid double-deducting stock when a component rerenders or a user revisits a completed transaction.
+
+### Bar sales ledger
+
+Include:
+
+- Transaction ID.
+- Date and time.
+- Customer or room.
+- Items summary.
+- Amount.
+- Payment method.
+- Payment status.
+- Responsible staff member.
+- Actions.
+
+Include meaningful KPIs, filters, search, pagination, and transaction details.
+
+### B. Kitchen & Restaurant
+
+Build a separate POS and order ledger for the restaurant.
+
+Use a menu-item model that distinguishes prepared portions from raw ingredients.
+
+Include:
+
+- Menu categories.
+- Search.
+- Menu-item cards or list.
+- Portion price.
+- Quantity.
+- Extras or modifiers where appropriate.
+- Cart.
+- Guest or walk-in customer.
+- Room charging where applicable.
+- Payment status.
+- Order summary.
+- Complete Order action.
+- Kitchen/restaurant ledger.
+
+Connect food inventory to menu consumption through a simple, coherent recipe or ingredient-usage model where practical.
+
+For example, selling one prepared meal may consume specified quantities of ingredients. Deduct stock only once, validate available quantities, and record the associated stock movements.
+
+Do not automatically treat one prepared meal as identical to one raw ingredient.
+
+Keep bar sales and restaurant sales distinct while allowing both to feed the appropriate financial reports.
+
+## 11. LAUNDRY
+
+### A. Laundry Logger
+
+Build a complete laundry intake and order-tracking interface.
+
+Each order should include:
+
+- Unique order ID.
+- Customer name.
+- Phone number.
+- Address, optional.
+- Garments and services.
+- Quantity.
+- Unit price.
+- Subtotals.
+- Total amount.
+- Amount paid.
+- Outstanding balance.
+- Payment method.
+- Payment status.
+- Promised collection date.
+- Rack or storage location.
+- Notes.
+
+Support adding multiple garments or services to a single order.
+
+Use a tag-style garment-entry interface where it improves usability.
+
+Laundry workflow:
+
+1. Received.
+2. Washing.
+3. Drying.
+4. Ironing.
+5. Ready for Collection.
+6. Collected.
+
+Display KPIs, a searchable table, status filters, date filters, edit/view actions, and an order-details drawer.
+
+The table should show order ID, customer, garment/service summary, promised date, workflow status, storage location, amount, and actions.
+
+### B. Laundry Storage
+
+This page must use the same underlying laundry records as Laundry Logger.
+
+Track:
+
+- Order ID or garment tag.
+- Customer.
+- Phone number.
+- Garment count.
+- Rack/storage location.
+- Received date.
+- Ready date.
+- Collection status.
+
+Include filters for ready, uncollected, and collected orders.
+
+When an order is collected, update the shared order status and remove it from the active uncollected list while preserving its history.
+
+Do not create a second independent copy of laundry records.
+
+## 12. INVENTORY
+
+Build four connected inventory modules.
+
+### A. Inventory Overview / Beverages
+
+Provide a polished inventory interface, using the supplied inventory references for inspiration.
+
+KPI cards:
+
+- Total Items.
+- Total Stock Value.
+- Low-Stock Items.
+- Out-of-Stock Items.
+
+Beverage fields:
+
+- Item name.
+- SKU.
+- Category.
+- Unit.
+- Purchase cost.
+- Selling price.
+- Available quantity.
+- Reorder threshold.
+- Supplier.
+- Storage location.
+- Stock status.
+
+Support search, category filters, stock filters, create/edit/delete, stock receiving, and stock adjustment.
+
+Calculate stock value consistently using a documented cost basis.
+
+### B. Food Inventory
+
+Track raw food ingredients and other kitchen inputs.
+
+Include:
+
+- Ingredient name.
+- SKU.
+- Category.
+- Unit of measurement.
+- Purchase cost.
+- Quantity available.
+- Expiry date where relevant.
+- Supplier.
+- Storage location.
+- Reorder level.
+- Stock status.
+
+Support receiving stock, usage, waste, adjustments, and expiry monitoring.
+
+Use appropriate units, such as kilograms, grams, litres, millilitres, packs, or pieces.
+
+Where unit conversion is supported, validate conversions carefully and avoid subtracting incompatible units.
+
+### C. Supplies
+
+Supplies must remain under Inventory, not Administration.
+
+Track hotel operating supplies, including:
+
+- Housekeeping supplies.
+- Cleaning materials.
+- Guest amenities.
+- Laundry consumables.
+- General operating supplies.
+
+Include item identity, category, unit, quantity, cost, reorder level, supplier, storage location, and stock status.
+
+Allow receiving, usage, waste, adjustments, and item management.
+
+### D. Stock Movements
+
+Create a stock-movement ledger that captures all relevant inventory changes.
+
+Movement types include:
+
+- Stock received.
+- Bar/POS sale.
+- Kitchen ingredient consumption.
+- Housekeeping usage.
+- Laundry usage.
+- Waste.
+- Adjustment.
+- Transfer between locations.
+
+Each movement should contain:
+
+- Unique movement/reference ID.
+- Date and time.
+- Item.
+- Movement type.
+- Quantity.
+- Unit.
+- Source or destination.
+- Related transaction or order.
+- Responsible user.
+- Notes.
+
+Use the shared inventory model.
+
+Stock changes from completed sales, kitchen consumption, and recorded usage must appear in this ledger automatically. Avoid creating duplicate movements for one operation.
+
+Low-stock and out-of-stock alerts must update whenever quantities change.
+
+## 13. FINANCE & INTELLIGENCE
+
+### A. Expenses
+
+Create an expense-management page with KPI cards such as:
+
+- Total Expenses.
+- Pending Expenses.
+- Approved Expenses.
+- Largest Expense or Average Expense, where useful.
+
+Expense fields:
+
+- Expense reference.
+- Description.
+- Category.
+- Branch.
+- Amount.
+- Date.
+- Payment method.
+- Status.
+- Responsible staff member.
+- Notes.
+
+Include search, category filters, date filters, status filters, sorting, pagination, create/edit/view, and appropriate approval or deletion interactions.
+
+Use a clear status workflow if approval is included. Keep it frontend-simulated.
+
+### B. Financial Reports
+
+Build a financial intelligence dashboard with date and branch filters.
+
+Include:
+
+- Total Revenue.
+- Total Expenses.
+- Net Profit.
+- Outstanding Balances.
+- Revenue Trend.
+- Expense Trend.
+- Revenue by Department.
+- Expense by Category.
+- Payment Method Breakdown.
+- Relevant transaction and summary tables.
+
+Use Recharts for professional, responsive visualizations.
+
+Define the financial calculations clearly:
+
+- Revenue comes from recognized hotel and department sales/booking revenue according to the application's chosen reporting model.
+- Expenses come from recorded expense entries.
+- Net profit is calculated consistently from recognized revenue minus recorded expenses, with any additional costs explicitly represented if included.
+- Outstanding balances are unpaid amounts, not new revenue when the underlying booking or sale has already been recognized.
+- Stock value is not revenue.
+- A payment collection must not create a second copy of the original sale or booking revenue.
+
+Use one consistent revenue-recognition approach throughout the dashboard. Document the approach in code comments and reflect it in report labels.
+
+All charts and financial totals must be derived from the shared mock data and selected date range.
+
+## 14. ADMINISTRATION
+
+### A. Staff & Permissions
+
+Build a complete staff-management interface.
+
+KPI cards may include:
+
+- Total Staff.
+- Active Staff.
+- Inactive Staff.
+- Roles or Departments.
+
+Staff fields:
+
+- Staff ID.
+- Name.
+- Role.
+- Department.
+- Branch.
+- Phone.
+- Email.
+- Status.
+- Last Activity.
+
+Include search, filters, staff creation/editing, staff details, status changes, and role assignment.
+
+Suggested roles:
+
+- Administrator.
+- Manager.
+- Front Desk.
+- Accountant.
+- Inventory Officer.
+- Housekeeping.
+- Restaurant Staff.
+- Laundry Staff.
+
+Create a permission interface with configurable permissions such as:
+
+- View.
+- Create.
+- Edit.
+- Delete.
+- Approve.
+- Manage Settings.
+
+Permissions may be simulated in frontend state to demonstrate how the interface works.
+
+**Do not claim that frontend-only permissions provide secure authorization.** Clearly keep the implementation ready for future backend enforcement.
+
+Where useful, show a simulated recent-activity feed for staff operations.
+
+### B. Hotel Settings
+
+Build a structured settings page with clear sections or tabs.
+
+Include:
+
+- Hotel name.
+- Contact information.
+- Address.
+- Currency.
+- Date and time preferences.
+- Check-in and check-out defaults.
+- Booking settings.
+- Room and room-type preferences.
+- Inventory preferences.
+- Payment methods.
+- Expense categories.
+- Notification preferences.
+
+Changes should update frontend configuration state wherever those settings are used.
+
+Validate required settings and provide clear save/reset feedback.
+
+### C. Optional Modules
+
+Create an optional-modules management interface.
+
+Each module should clearly indicate whether it is:
+
+- Enabled.
+- Disabled.
+- A future integration or not implemented.
+
+Allow users to enable or disable supported optional frontend modules in local state where practical.
+
+Do not use this page as an excuse to leave any of the required modules in this specification unimplemented.
+
+## 15. SHARED DATA AND BUSINESS RULES
+
+This is one of the most important requirements.
+
+Create a coherent mock-data architecture with shared entities and unique IDs for:
+
+- Branches.
+- Guests.
+- Rooms.
+- Room types.
+- Bookings.
+- Beverage items.
+- Food ingredients.
+- Supplies.
+- POS transactions.
+- Restaurant orders.
+- Laundry orders.
+- Expenses.
+- Staff.
+- Stock movements.
+- Settings.
+
+All pages must read and update the same underlying records.
+
+Examples:
+
+- Creating a booking updates the booking table, Gantt timeline, Overview, and relevant guest profile.
+- Changing a room's operational status updates the room card, Overview, and room-availability indicators.
+- Completing a bar sale updates the POS ledger, beverage stock, stock movements, and revenue reports.
+- Completing a restaurant order updates the restaurant ledger, relevant ingredient quantities, stock movements, and financial summaries.
+- Recording an expense updates the expense ledger and financial reports.
+- Recording a laundry order makes it available in Laundry Storage.
+- Marking laundry as collected updates the shared laundry order.
+- Creating or editing a guest updates the CRM and related booking references.
+
+Use React state, Context, or a lightweight state-management approach where appropriate.
+
+Persist mock state in local storage only if practical and useful. If persistence is implemented, handle initialization and updates reliably. Otherwise, maintain consistent shared state for the current application session.
+
+Never display a success notification for an action that failed validation.
+
+## 16. FUNCTIONALITY REQUIREMENTS
+
+Every visible interactive element must work.
+
+Implement:
+
+- Navigation.
+- Search.
+- Filtering.
+- Sorting.
+- Pagination.
+- Tabs and view switchers.
+- Date-range controls.
+- Custom dropdowns.
+- Form validation.
+- Create, view, edit, and delete actions.
+- Confirmation dialogs.
+- Detail drawers.
+- Status changes.
+- Stock receiving and adjustments.
+- POS cart quantity controls.
+- Checkout/order completion.
+- CSV export where specified.
+- Empty states.
+- Loading or processing feedback where useful.
+- Success and error notifications.
+- Responsive sidebar behaviour.
+- Working chart filters.
+
+Do not leave buttons that do nothing.
+
+If an operation is not supported in a frontend-only implementation, provide a clear and honest simulated interaction rather than pretending that an external service was contacted.
+
+## 17. RESPONSIVE DESIGN
+
+The application must work on desktop, tablet, and mobile.
+
+Desktop:
+
+- Persistent sidebar.
+- Spacious dashboard grids.
+- Wide data tables.
+- Fully usable booking timeline.
+
+Tablet:
+
+- Adapted grid columns.
+- Condensed navigation where appropriate.
+- Scrollable tables and timeline.
+
+Mobile:
+
+- Drawer navigation.
+- Single-column KPI cards or compact grids.
+- Readable forms and charts.
+- Touch-friendly controls.
+- Horizontally scrollable tables and timelines where necessary.
+
+Do not allow text, controls, or cards to overflow their containers.
+
+## 18. CODE ORGANIZATION
+
+Use a clear, maintainable folder structure.
+
+Separate:
+
+- Application shell and routing.
+- Shared components.
+- Design tokens and styles.
+- Shared data and models.
+- Hooks and utilities.
+- Overview.
+- Hotel Operations.
+- Guest Management.
+- Sales & Services.
+- Laundry.
+- Inventory.
+- Finance & Intelligence.
+- Administration.
+
+Create reusable components for:
+
+- KPI cards.
+- Page headers.
+- Filters.
+- Search bars.
+- Data tables.
+- Status badges.
+- Rounded dropdowns.
+- Modals and drawers.
+- Empty states.
+- Notifications.
+- Chart containers.
+- Date-range controls.
+
+Keep business calculations in reusable utilities or selectors rather than duplicating logic across pages.
+
+Do not place the entire application into one enormous component.
+
+## 19. IMPLEMENTATION PROCESS
+
+Before coding:
+
+1. Inspect the supplied UI references.
+2. Review the complete requirements in this prompt.
+3. Plan the shared data entities and their relationships.
+4. Establish the design tokens and reusable component system.
+5. Establish routes for all required pages.
+
+Then implement the full application.
+
+Build the application shell and shared components first, then implement every required module using the same design system and shared data model.
+
+Do not stop after Overview or Hotel Operations.
+
+Do not ask me to approve each page individually. Use the complete specification and make consistent design decisions independently.
+
+Preserve the strong visual quality of the best existing Overview and Hotel Operations concepts. Improve consistency and missing functionality without unnecessarily redesigning their successful visual language.
+
+## 20. FINAL QUALITY CHECK
+
+Before presenting the result, verify the following:
+
+- Every navigation destination exists.
+- Every required module has a complete interface.
+- Every page uses Outfit.
+- The peach accent is used consistently and selectively.
+- All KPI cards use the double-surface design with approximately a 1px inset.
+- All dropdowns and overlays follow the rounded design system.
+- No placeholder pages remain.
+- No important buttons are inert.
+- Forms validate required fields.
+- Shared data remains consistent between modules.
+- Booking overlaps are prevented.
+- Booking timeline bars correctly represent occupied nights.
+- POS sales deduct stock once.
+- Kitchen orders update relevant ingredients where configured.
+- Stock movements reflect inventory changes.
+- Laundry Logger and Storage use the same records.
+- Revenue, expenses, profit, and outstanding balances are calculated consistently.
+- Charts respond to filters.
+- Search, filters, and pagination work.
+- The application remains usable on mobile and desktop.
+- The project compiles without avoidable errors.
+
+Deliver a complete, polished React frontend with all pages implemented and a working preview if the environment supports it.
+
+**Final instruction: Prioritize completeness, visual consistency, and working business logic. Do not sacrifice the quality of later modules because the first few pages look good. Lumina Hotel Suites must feel like one finished, unified hotel-management product.**

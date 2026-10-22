@@ -1,0 +1,616 @@
+# LUMINA HOTEL SUITES — DASHBOARD REFINEMENT & CONSISTENCY FIXES
+
+## Objective
+
+Refine the existing Lumina Hotel Suites frontend. This is an implementation task, not a redesign from scratch.
+
+**Work only on the following areas for now:**
+1. Global design system and sidebar navigation.
+2. Overview.
+3. Hotel Operations → Bookings.
+4. Hotel Operations → Rooms.
+5. Hotel Operations → Reports.
+
+Do not begin Guest Management or any other modules until I review these changes.
+
+Before editing, inspect the existing project structure, components, styling, navigation, mock data, charts, and date-filter implementations. Reuse and improve existing components wherever possible. Do not introduce duplicate components, break navigation, remove existing features unnecessarily, or replace functioning interactions with static mockups.
+
+Implement the changes directly and verify the affected pages.
+
+---
+
+# 1. GLOBAL DESIGN SYSTEM
+
+## 1.1 Refine the primary purple
+
+The current purple is too bright and visually overpowering. Replace it with a more muted, sophisticated purple suitable for premium hotel-management software.
+
+Use this as the initial direction:
+
+- Primary purple: `#7463A6`
+- Faint purple background: `#F1EEF8`
+- Dashboard canvas: retain the existing light ash/off-white background.
+- Card surfaces: white.
+- Primary text: dark charcoal.
+- Secondary text: muted grey.
+- Borders: subtle ash-grey, used only where needed.
+
+These purple values are a starting point. Ensure all existing active states, selected controls, charts, calendar selections, and interactive highlights use the same consistent palette.
+
+Avoid bright violet, neon purple, gradients, purple glows, and excessive purple surfaces.
+
+Keep the interface premium, understated, and professional.
+
+## 1.2 Typography
+
+Use Outfit consistently throughout the application.
+
+Avoid unnecessarily heavy font weights. Use medium weights for headings and regular/light weights for supporting labels and figures where appropriate.
+
+## 1.3 Reduce corner radii
+
+The corner radii throughout the dashboard are currently too large.
+
+Reduce them moderately and consistently across:
+- KPI outer shells and inner cards.
+- Section containers.
+- Sidebar navigation items.
+- Search fields and filter controls.
+- Dropdown menus.
+- Date pickers and calendars.
+- Chart containers.
+- Tables and other relevant surfaces.
+
+Do not make everything sharp-edged. Maintain a refined, moderately rounded appearance rather than the current overly rounded style.
+
+## 1.4 Global KPI card redesign
+
+This is a general audit covering every KPI card in the specified modules.
+
+Remove the small rounded-square background surrounding each KPI icon. **Keep the icon itself, but remove its decorative background container.**
+
+Each KPI must follow this arrangement:
+
+- Outer shell: subtle ash/off-white background.
+- Inner card: white background with a very soft shadow.
+- No unnecessary border around the KPI shell.
+- Reduced corner radius.
+- Minimal, balanced inset between outer and inner surfaces.
+- The inner card must be shifted upwards to eliminate the excessive empty space at the top.
+- The KPI label and its icon must share the same horizontal alignment.
+- Preserve the large metric, comparison percentage, explanatory text, and existing meaningful sparkline where applicable.
+
+Give each KPI icon its own appropriate icon colour. Different icons must not all appear in the same colour.
+
+Do not remove the icon itself or make the cards visually empty.
+
+Keep the cards responsive and consistent across Overview, Bookings, Rooms, and Reports.
+
+## 1.5 Reusable custom date picker
+
+The date picker is still using default browser styling. Fix this throughout the specified modules.
+
+Create or consolidate a reusable date-picker component that can be used anywhere a date range is required.
+
+The component must support the existing date-filter requirements, including:
+- Preset ranges where applicable.
+- Custom range selection.
+- Selecting a start date and end date.
+- Clear selected dates where appropriate.
+- Applying and cancelling a custom range where appropriate.
+- Displaying the selected range in the trigger field.
+
+### Visual requirements
+
+Replace default HTML/browser date-picker styling with a properly styled interface consistent with Lumina.
+
+- Rounded calendar container with a restrained corner radius.
+- White surface and subtle shadow.
+- Consistent typography using Outfit.
+- Custom previous/next month controls.
+- Properly styled weekday headings and date cells.
+- Hover states using a very faint purple background.
+- Selected dates using the muted primary purple.
+- Date-range start, end, and dates between them visually distinguished.
+- Today indicated subtly.
+- Disabled dates visibly differentiated where relevant.
+- Rounded, custom-styled action buttons.
+- Custom dropdowns and menus rather than browser-default menus.
+
+Remove the default ash-and-black selection appearance.
+
+Use the same component and styling for Overview, Bookings, Reports, and future modules that require date selection. Do not implement a different calendar for each page.
+
+Preserve each filter's intended behaviour and ensure selected dates actually affect the relevant data.
+
+---
+
+# 2. SIDEBAR NAVIGATION
+
+Redesign the active navigation states without changing the sidebar's overall information architecture.
+
+## 2.1 Active parent or standalone item
+
+When a standalone item such as Overview is active, or a parent section such as Hotel Operations is active:
+
+- Use a white background inside the rounded navigation container.
+- Add a subtle ash-grey border of approximately 2px.
+- The border should visually separate the white item from the sidebar's existing background.
+- Add a very subtle inner shadow, not a conventional external drop shadow, to create a restrained raised or tactile effect.
+- Change the item's icon and text to the new muted purple.
+- Remove the existing right-hand purple indicator line.
+- Do not use the old faint-purple filled background for active parent items.
+
+The effect should feel refined and slightly tactile, not inset, glossy, or heavily embossed.
+
+## 2.2 Active child item
+
+When a child page is active, such as Bookings, CRM, or Reports:
+
+- Retain a faint purple background.
+- Use the new muted purple for the child label.
+- Do not show the right-hand purple indicator line.
+- Remove the purple circular dot that previously appeared beside the parent section when one of its children is active.
+- Keep the parent and child hierarchy clear without adding unnecessary icons to every child.
+
+Do not add child icons as part of this task. We can decide on that later.
+
+## 2.3 Consistency
+
+Apply the correct active-state behaviour to Overview and all existing parent and child navigation items, including Hotel Operations, Guest Management, Sales & Service, Laundry, Inventory, Finance & Intelligence, and Administration.
+
+Do not break navigation, route changes, expanded/collapsed sidebar behaviour, or the existing URL structure.
+
+---
+
+# 3. OVERVIEW REFINEMENTS
+
+Preserve the current Overview layout and its overall visual direction. Make only the changes described below.
+
+## 3.1 Header profile image
+
+In the global header, replace the initials-based avatar (“AO”) with an actual profile image.
+
+- Use an existing configured profile-image asset or existing user-profile image if one is available.
+- Do not generate a random image or substitute another person's identity.
+- If no profile image exists in the project, use a neutral, professional placeholder avatar image that can later be replaced.
+- Maintain the existing avatar dimensions, alignment, and click behaviour.
+- Do not disturb the location, global search, or notification controls.
+
+## 3.2 Six Overview KPI cards
+
+Keep the existing six KPIs in a three-column, two-row layout on desktop:
+
+1. Total Revenue.
+2. Total Bookings.
+3. Occupancy.
+4. Available Rooms.
+5. Net Profit.
+6. Expenses.
+
+Apply the global KPI redesign:
+- Remove the rounded-square icon backgrounds.
+- Keep the icons themselves.
+- Align each label and icon horizontally.
+- Move the inner white card upwards.
+- Reduce the excessive top gap.
+- Reduce the corner radii.
+- Keep unique, appropriate icon colours.
+- Retain the large figures, percentage comparisons, and sparklines.
+
+### KPI logic and sparklines
+
+Audit the metric calculations and ensure the percentage comparisons are calculated from actual available mock data rather than randomly assigned values.
+
+Do not treat every increase as good performance.
+
+- **Revenue:** A positive increase may be green when revenue is performing favourably.
+- **Bookings:** A positive increase may be green when bookings are performing favourably.
+- **Occupancy:** Higher occupancy may be favourable, subject to context.
+- **Available Rooms:** Do not automatically show a red downward-trending sparkline simply because the number of available rooms decreases. Availability is an operational capacity metric. Use a relatively stable or neutral line when the underlying availability is stable, and show real movement only when the data supports it.
+- **Net Profit:** An increase is generally favourable; a decrease is generally unfavourable.
+- **Expenses:** An increase should not automatically appear green. An undesirable expense increase should be red or otherwise clearly marked as unfavourable. A reduction in expenses may be favourable.
+
+Percentage values must reflect the comparison period and underlying figures. If a meaningful comparison cannot be calculated, display a neutral state rather than fabricating a trend.
+
+Do not add arrow icons or rounded percentage badges around comparison figures.
+
+## 3.3 Revenue Trend
+
+Keep the existing chart and filter functionality, but refine the layout.
+
+### Header
+
+- Title: `Revenue Trend`
+- Remove the subtitle entirely.
+- Keep the source filter and time-range filter on the same horizontal line as the title, aligned to the right where space permits.
+- Retain the existing custom dropdown design.
+
+Revenue sources:
+- All
+- Rooms
+- Bar & POS
+- Restaurant
+- Laundry
+
+Time ranges:
+- Last 7 Days
+- Last 30 Days
+- Last 12 Months
+- Custom Range, if supported by the existing global date-filter design.
+
+### Chart container
+
+- Move the inner white chart container upwards.
+- Reduce the excessive space between the heading/filter area and the chart.
+- Reduce the corner radius.
+- Reduce unnecessary empty space at the bottom of the chart.
+- Stretch the chart vertically within its available space.
+- Move the X-axis labels lower so the chart uses the available vertical area more effectively.
+- Bring the chart's lower edge closer to the summary row beneath it without causing overlap.
+- Preserve responsive behaviour and readable axis labels.
+
+### Summary
+
+Remove the existing label `Period Total • All Sources`.
+
+Replace it with a simple, light-weight label:
+
+`Total Revenue`
+
+Display the corresponding revenue figure beside or beneath the label according to the existing layout.
+
+The label must use a light or regular font weight, similar to the Total Expense label in the Expenses section.
+
+The total must update when the revenue-source or time-range filters change. Do not leave the total fixed while the chart changes.
+
+The global Overview date filter should continue to affect the appropriate date-sensitive sections. A local Revenue Trend time filter should override the chart's own period without unintentionally changing unrelated sections.
+
+## 3.4 Expenses
+
+Keep the existing Expenses chart and category breakdown.
+
+- Title: `Expenses`
+- Remove the subtitle `Expense distribution by category`.
+- Keep the time-range dropdown aligned horizontally with the title.
+- Move the inner white container upwards.
+- Reduce the gap between the heading/filter and the chart.
+- Reduce corner radii.
+- Retain the existing category colours, legend, and total.
+- Do not use black or nearly black for all chart segments.
+- Ensure the total and category values remain consistent with the selected date range and available data.
+
+The total should use the same understated typographic treatment as Total Revenue.
+
+## 3.5 Room Status
+
+Keep the existing progress-bar design; it is one of the strongest parts of the Overview.
+
+### Header
+
+- Title: `Room Status`
+- Remove the subtitle `Live housekeeping and occupancy state`.
+- Replace the existing Rooms CTA/arrow with a refresh icon.
+- The refresh icon must be functional and reload or recompute the existing shared room-status data. It must not generate random room records.
+
+### Content
+
+Keep the four room states:
+- Available
+- Occupied
+- Cleaning
+- Maintenance
+
+Remove the coloured circular dots beside all four labels. The labels should stand on their own, while the progress bars retain their meaningful colours:
+- Available: green.
+- Occupied: muted purple.
+- Cleaning: amber.
+- Maintenance: red.
+
+Keep the counts and progress bars. The proportions must be based on the actual room counts and total inventory.
+
+Remove the hover behaviour that changes Available to purple. The labels and progress bars must not suddenly change to the primary accent merely because the pointer passes over them.
+
+Move the inner white container upwards, reduce excessive whitespace, and reduce the corner radius.
+
+## 3.6 Recent Bookings
+
+Preserve the original Recent Bookings design and existing table layout. Do not replace it with a new card-based booking design.
+
+- Title: `Recent Bookings`
+- Remove the subtitle `Latest reservations and front desk check-ins`.
+- Move the inner container upwards.
+- Reduce corner radii.
+- Keep the existing View All action.
+- Add a refresh icon beside the existing action area.
+- Do not add a new filter to this panel.
+
+Show up to four booking rows initially. If more rows exist, scroll vertically inside the inner card.
+
+The outer panel must retain a fixed height and must not expand as more rows are added. Use a subtle scrollbar that does not dominate the design.
+
+The refresh icon must reload the existing shared booking data. View All must navigate to the appropriate Bookings page.
+
+Keep the heading and action area fixed while the rows scroll.
+
+## 3.7 Alerts & Exceptions
+
+Preserve the brighter category-specific colours and visual distinction that already exist.
+
+- Title: `Alerts & Exceptions`
+- Remove the subtitle `Items that need attention`.
+- Replace the `7 active` label with a refresh icon.
+- Move the inner container upwards.
+- Reduce corner radii.
+
+Use recognizable icons that match the actual alert:
+- Out-of-stock: a suitable package/stock icon and alert-triangle treatment, clearly critical and red.
+- Low stock: an appropriate stock icon, clearly distinguished from out-of-stock and shown in amber.
+- Maintenance: a wrench or maintenance-related icon with a warning treatment.
+- Pending payment: a receipt, wallet, or payment-related icon.
+- Laundry ready: an appropriate laundry-related icon with a green completion treatment.
+
+Use soft tinted backgrounds where needed. Avoid generic decorative icons that do not communicate the alert type.
+
+Show up to four alert rows initially. Additional alerts should scroll inside the inner card without expanding the outer panel.
+
+The refresh action must use the existing shared data, not create random alerts.
+
+## 3.8 Equal-height bottom panels
+
+Room Status, Recent Bookings, and Alerts & Exceptions must have equal outer and inner heights on desktop.
+
+- Align all three panels at the top and bottom.
+- Keep headings and action controls aligned.
+- Do not stretch Room Status by inserting large empty spaces.
+- Keep its progress-bar content compact.
+- Allow Recent Bookings and Alerts & Exceptions to scroll internally after their initial four visible rows.
+- Stack panels naturally on small screens.
+
+---
+
+# 4. HOTEL OPERATIONS → BOOKINGS
+
+## 4.1 Reduce KPI cards from five to four
+
+Remove the existing fifth KPI. The page should have exactly four KPI cards:
+
+1. Active Bookings.
+2. Total Bookings.
+3. Booking Revenue.
+4. Available Rooms.
+
+Do not show a combined Completed/Cancelled Bookings KPI. Do not add a replacement Completed Bookings or Cancelled Bookings KPI.
+
+The booking-status filter already provides access to completed and cancelled records.
+
+Apply the global KPI design:
+- Remove the icon's rounded-square background.
+- Keep the icon itself.
+- Give each icon its own appropriate colour.
+- Move the inner white container upwards.
+- Reduce the top gap.
+- Align each label and icon horizontally.
+- Reduce the corner radius.
+- Retain the relevant figures and meaningful comparison information.
+
+Ensure these KPI values are calculated consistently with the booking data.
+
+## 4.2 Search and filter layout
+
+Arrange these controls on the same horizontal row on desktop:
+
+1. Search bar.
+2. Booking Status.
+3. Payment Status.
+4. Room Type.
+
+Use consistent heights, spacing, typography, and rounded styling. Allow sensible responsive wrapping on smaller screens.
+
+Booking Status must support:
+- All Statuses.
+- Confirmed.
+- Checked In.
+- Checked Out.
+- Pending.
+- Cancelled.
+
+Payment Status must support:
+- All Payments.
+- Paid.
+- Partially Paid.
+- Unpaid.
+
+Room Type must support:
+- All Room Types.
+- The room categories that actually exist in the current data.
+
+The search bar must continue to work with the filters. Changing any filter must update the displayed booking records.
+
+## 4.3 Date filter placement
+
+Place the date filter on a separate row directly below the search/filter row.
+
+Use the shared custom date-picker component specified in Section 1.5.
+
+The date control must use the same rounded calendar, muted purple selection states, custom typography, and custom dropdown styling as the Overview date filter.
+
+Ensure the selected dates actually filter the booking records.
+
+Do not use native browser-default date inputs or default black/grey calendar selections.
+
+## 4.4 Preserve other booking functionality
+
+Do not undertake a booking-workflow redesign yet.
+
+Preserve the existing table, booking details, view/edit actions, new-booking functionality, and navigation. We will review and refine those workflows separately.
+
+For this task, focus on the page's visual consistency, KPI cards, filter layout, and reusable date-picker.
+
+---
+
+# 5. HOTEL OPERATIONS → ROOMS
+
+The current room display is acceptable. Do not redesign the room cards, room details, room activity display, or edit-room functionality.
+
+Focus on the KPI cards only.
+
+Apply the global KPI redesign to every KPI on the Rooms page:
+- Remove the rounded-square background around each icon.
+- Retain the icon itself.
+- Use a unique, appropriate colour for each KPI icon.
+- Move the inner white container upwards.
+- Reduce excessive top spacing.
+- Align each KPI label and icon horizontally.
+- Reduce corner radii.
+- Preserve all existing room metrics and interactions.
+
+Keep Configure Room Types available. Do not redesign the room-type configuration interface in this task; we will address that separately.
+
+---
+
+# 6. HOTEL OPERATIONS → REPORTS
+
+## 6.1 KPI cards
+
+Apply the global KPI redesign to all Reports KPI cards.
+
+Remove decorative icon backgrounds, preserve individual icon colours, move inner cards upwards, align labels and icons horizontally, and reduce corner radii.
+
+Do not remove the existing report metrics or break their calculations.
+
+## 6.2 Room Type Revenue Performance
+
+Keep the existing column-chart concept.
+
+### Layout
+- Keep the title `Room Type Revenue Performance`.
+- Add a functional refresh icon.
+- Add a custom time-range dropdown.
+- Use the shared date-filter system and styling where custom ranges are supported.
+- Move the chart down into the available card space so it occupies the container more effectively.
+- Reduce the excessive whitespace below the X-axis.
+- Reduce the corner radius of the surrounding card.
+
+### Hover behaviour
+
+The chart currently displays a large ash-grey background when hovering over columns. Remove this distracting hover background.
+
+On hover:
+- Highlight the actual data column appropriately.
+- Display a clean tooltip containing the relevant room type, revenue, and other useful values supported by the chart.
+- Do not show a large grey rectangular overlay across the chart.
+- Keep axes, labels, and surrounding layout stable.
+- Use subtle transitions only where useful.
+
+The chart should feel interactive and data-driven rather than like a static illustration.
+
+### Data
+
+Use the actual available room-type revenue data and make sure the time-range filter affects the chart. Do not generate random chart values whenever the user changes a filter.
+
+## 6.3 Booking Status Breakdown
+
+Fix the chart because its current status breakdown is visually and logically incorrect.
+
+Use the following consistent status-colour mapping throughout the Reports module:
+
+- Confirmed: green.
+- Checked In: muted purple.
+- Checked Out: ash/grey.
+- Pending: yellow/amber.
+- Cancelled: red.
+
+Use these colours consistently in the chart, legend, tooltips, and any relevant status labels.
+
+The chart must reflect actual booking counts for the selected period. Each segment must represent the correct status and corresponding count or proportion.
+
+Do not assign colours to statuses arbitrarily or show incorrect segment proportions.
+
+### Header controls
+
+- Keep the title `Booking Status Breakdown`.
+- Add a functional refresh icon.
+- Add a custom time-range dropdown.
+- Allow the time filter to update the chart and summary values.
+- Use the reusable date-picker component for custom ranges where applicable.
+
+Do not introduce a different date-picker style on this page.
+
+## 6.4 Room Category Yield and Utilization Matrix
+
+Preserve the existing table concept and its columns:
+
+- Room Category.
+- Inventory Count.
+- Bookings.
+- Nights Sold.
+- Standard Rate.
+- Total Revenue.
+
+Add a numbered ID column at the beginning of the table. Display sequential row numbers such as 1, 2, 3, and 4 for the visible room-category records. These are display row numbers, not invented database IDs.
+
+### Add filters
+
+Place a time-range filter and a room-category filter in the matrix header area.
+
+The room-category filter must include the actual room categories available in the project, such as:
+- All Room Categories.
+- Standard.
+- Deluxe.
+- Executive.
+- Presidential Suite.
+
+Only show categories that exist in the application's current room-category data. If the category labels differ in the project, use the actual labels rather than inventing new ones.
+
+### Filtering behaviour
+
+When I select Standard, the matrix should show the relevant Standard-category data. When I select Deluxe, Executive, or Presidential Suite, the matrix should update accordingly.
+
+The table must allow meaningful comparison of rooms within the selected category, including which rooms or room categories generate the most revenue where that level of data is available.
+
+If the existing data model tracks performance at room-type level only, filter and rank the room types accurately. Do not pretend to have individual-room performance data if it does not exist.
+
+The time-range filter must affect the relevant booking, nights-sold, and revenue metrics.
+
+Preserve the existing table design while adding the filters and row numbering.
+
+---
+
+# 7. SHARED DATA AND FUNCTIONALITY REQUIREMENTS
+
+These changes must improve the existing application rather than merely change its appearance.
+
+- Reuse shared booking, room, financial, and alert data wherever possible.
+- Keep KPI values consistent with their underlying records.
+- Ensure date filters, status filters, room-type filters, chart refreshes, and table filters actually work.
+- Ensure totals recalculate when relevant filters change.
+- Use stable mock data where the application is currently frontend-only.
+- Do not generate random values on each refresh simply to create the appearance of activity.
+- Keep charts connected to the same data as their associated tables and KPIs.
+- Use sensible neutral states where historical data is insufficient.
+- Preserve working navigation, existing URLs, and current page functionality.
+- Do not add fake API calls or pretend that a backend exists.
+- Avoid duplicating reusable components or creating inconsistent versions of the same control.
+- Ensure the UI remains usable on desktop, tablet, and mobile.
+
+## Implementation quality
+
+Inspect the existing components before editing. Make the smallest coherent changes necessary to deliver the requested improvements.
+
+Do not replace complete pages with simplified mockups. Do not remove functionality just because it complicates the implementation.
+
+Do not stop after describing a plan or producing code snippets. Implement the changes directly in the existing project.
+
+After implementation, verify:
+1. Overview's six KPI cards and all three bottom panels.
+2. Overview's revenue and expense filters.
+3. The new sidebar active states.
+4. Bookings' four KPI cards and filter arrangement.
+5. The shared custom date-picker on Overview and Bookings.
+6. Rooms' KPI cards and unchanged room display.
+7. Reports' chart colours, hover behaviour, refresh actions, and date filters.
+8. Reports matrix category filtering, time filtering, and row numbering.
+9. Responsive layout and existing navigation.
+
+**Scope boundary:** Complete and verify only these changes. Do not proceed to Guest Management, Sales & Service, Laundry, Inventory, Finance & Intelligence, or Administration refinements until I have reviewed the result.

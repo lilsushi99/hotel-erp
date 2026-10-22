@@ -1,0 +1,701 @@
+# LUMINA HOTEL SUITES — IMPLEMENTATION BATCH 2
+## Laundry, Inventory, Finance & Intelligence, Administration, and Global UI Consistency
+
+### 1. Implementation instructions
+
+Work directly inside the existing Lumina Hotel Suites project. Read the existing project structure, reusable components, data models, current pages, and relevant documentation before editing.
+
+This is an implementation task, not a design proposal. Make the changes, connect the relevant interactions, and verify that the affected pages work.
+
+**Non-negotiable rules**
+- Preserve the existing visual identity and layouts unless a change is explicitly requested below.
+- Do not rebuild unrelated pages or introduce new features outside this scope.
+- Reuse shared components, existing records, and current data relationships.
+- Keep the project frontend functional and data-driven. Do not pretend a backend exists if the project is still frontend-only.
+- No fabricated metrics, random refresh values, duplicate customer records, or hardcoded results that contradict the underlying records.
+- Keep existing features that are not explicitly removed.
+- Remove requested sections from the interface without deleting reusable components or data that other pages still depend on.
+
+## 2. Global design-system corrections
+
+### Brand colour consistency
+
+The interface has inconsistent peach/coral accents and black primary CTA buttons. Correct this globally.
+
+- Use the existing muted purple brand accent, approximately `#7463A6`, with a pale purple tint around `#F1EEF8`.
+- Replace remaining peach, coral, and reddish-orange primary accents with the muted purple brand colour.
+- Replace black primary CTA buttons with consistent purple primary buttons.
+- Standardise button height, radius, padding, typography, hover, focus, disabled, and loading states.
+- Secondary actions should use appropriate neutral or outlined styling, not compete with the primary action.
+- Do not apply purple indiscriminately to every icon or every status. Status colours must remain meaningful.
+- Do not introduce gradients, glow effects, glassmorphism, neon colours, or unnecessary decorative elements.
+
+### Universal KPI card rules
+
+Apply the same KPI card structure and dimensions throughout the application.
+
+- Preserve the existing Overview KPI card height as the standard reference.
+- Keep the off-white outer shell, white inner card, subtle shadow, and balanced spacing.
+- Use the existing Outfit font.
+- Keep the KPI title, individual icon, and main figure.
+- Remove the fourth component: the supporting or descriptive text beneath the main figure.
+- **Removing supporting text must never reduce the card height.** Maintain the Overview KPI card height, inner-card position, and consistent spacing.
+- Do not add new borders or decorative icon-background squares.
+- Keep icons appropriately sized and individually coloured where appropriate.
+
+This applies to Laundry Logger, Laundry Storage, Beverages, Food Inventory, Stock Keeper, Expenses, Finance Reports, and any other KPI cards in this batch unless a section explicitly says to retain or remove the entire KPI group.
+
+## 3. Laundry
+
+### A. Laundry Logger
+
+Remove the subtitle beneath the Laundry Logger page heading.
+
+Add a date-range dropdown aligned horizontally with the page heading and the **Log Laundry Order** button. The selected date range must update the four KPI figures and the relevant order records. Reuse the shared date-filter pattern used in Customer CRM.
+
+The date filter must be compact and styled consistently with the application. Do not use default browser date controls for custom calendar popups.
+
+#### Four KPI cards
+
+Keep exactly these four KPIs:
+
+1. **Total Laundry Orders** — total orders within the selected reporting period.
+2. **Orders In Progress** — orders still moving through washing, drying, ironing, or other configured processing stages.
+3. **Ready for Collection** — orders whose garments have been processed and are ready for the customer.
+4. **Laundry Revenue** — revenue recorded for laundry orders within the selected period, using the project's existing revenue/payment rules.
+
+Remove all supporting text, including descriptions such as “Shared with laundry storage,” “Active processing queue,” “Rack and tag,” and “Valet and dry cleaning.”
+
+Do not treat washing, drying, and ironing as separate mutually exclusive KPI categories. They are processing stages that contribute to the overall **Orders In Progress** figure. Avoid double-counting an order when multiple garments are at different stages.
+
+#### Laundry order table
+
+Preserve the existing table and actions, using these columns:
+
+- Order ID
+- Customer
+- Garment & Service
+- Promise Date
+- Workflow
+- Rack Status, only where still relevant to the existing process
+- Amount
+- Actions
+
+Actions must allow staff to advance an order through its legitimate workflow, including processing, ready for collection, and collected. Prevent invalid transitions where appropriate.
+
+Keep existing search, filtering, editing, and order-detail functionality.
+
+### B. Log Laundry Order form
+
+Remove the subtitle beneath the form heading.
+
+#### Customer selection: two modes
+
+Replace the current Quick Guest Lookup arrangement with two clear selectable modes:
+
+**Mode 1 — Existing Hotel Guest**
+
+- Provide a searchable guest lookup.
+- Search by guest name or room number.
+- Use an autocomplete/searchable result list, not a long dropdown requiring manual scrolling.
+- Show enough information to identify the correct person and room.
+- Only offer eligible existing hotel guest records according to the current booking and customer data.
+- Selecting a guest automatically fills their name, primary phone number, and relevant room/address details.
+- Avoid creating a duplicate customer when the person already exists.
+
+**Mode 2 — Walk-in Customer**
+
+- Allow staff to manually enter the customer's name, phone number, and delivery address.
+- Do not require a hotel room or an existing booking.
+- Reuse an existing customer record if a reliable match exists; otherwise create a customer record through the existing application workflow.
+- Clearly distinguish a walk-in order from an in-house guest order.
+
+Switching between modes must not silently associate the order with the wrong customer. Preserve entered information sensibly when changing modes, or warn before discarding it.
+
+#### Garment entry
+
+Remove the entire **Quick Add Garment Preset** feature, including preset chips, “click to add tags,” and related preset controls.
+
+Provide a manual garment-entry interface. Staff must be able to add multiple garment line items to one laundry order.
+
+Each line item should support:
+- Garment description/name, entered manually.
+- Service type, such as washing, dry cleaning, ironing, or another service already supported by the application.
+- Quantity, where applicable.
+- Price for the garment/service line.
+- Line total calculated from quantity and price.
+
+Allow line items to be added, edited, and removed. Calculate the order total from the actual entered line items. Do not fabricate preset prices or garments.
+
+#### Dates and other fields
+
+- Customise the Promise Date calendar using the shared date-picker component. Remove default browser styling, oversized padding, and inconsistent controls.
+- Use the existing custom calendar appearance, compact layout, Outfit typography, muted purple accents, and clear month/year navigation.
+- Remove **Rack Storage Location** from the order-creation form. It is not necessary for logging the order.
+- Payment methods must be **Card, Bank Transfer, and Cash** only. Remove POS Terminal and Room Charge from this form.
+- The Amount Paid field must be connected to the order total and payment records. Initialise or calculate it according to the existing payment workflow, and allow staff to record the amount actually received. Do not automatically mark an order fully paid when only a partial payment has been received.
+- Keep any existing payment status functionality, with Paid, Partially Paid, and Unpaid reflecting recorded amounts.
+- Validate required customer information, garment entries, quantities, prices, and promise date.
+- Preserve existing save/cancel behaviour and validation feedback.
+
+### C. Laundry processing and ironing
+
+In the washing/ironing section, remove the decorative sparkle icon. Use an appropriate washing, iron, or processing icon if an icon is required.
+
+Ensure processing states are clear and that completed garments can progress to Ready for Collection.
+
+### D. Laundry Storage
+
+Remove all four KPI cards from Laundry Storage. Do not replace them with another KPI row.
+
+Remove the subtitle beneath the Laundry Storage heading, including the description about garment tags, rack location, ready dates, and collection handover.
+
+Laundry Storage is an **operational collection register**, not another dashboard or a separate financial report.
+
+It should contain completed laundry orders whose garments are ready for collection, along with their collection history. It must not be a duplicate of every active laundry order.
+
+Provide two clear views or a compact status filter:
+
+1. **Awaiting Collection** — processed garments ready for the customer.
+2. **Collected** — orders whose garments have been handed over.
+
+Use a table with the relevant fields:
+- Order ID
+- Customer Name
+- Phone Number
+- Number of Garments
+- Garment Description
+- Date Received
+- Ready/Promise Date
+- Collection Status
+- Actions
+
+Use the existing order and garment data. If an order contains several garments, display a sensible count and readable description without duplicating the order unnecessarily.
+
+Staff should be able to mark an order as collected and retain its collection history. An order must not appear in Awaiting Collection after it has been collected.
+
+Only orders that have completed processing should enter the ready-for-collection view. Do not allow an order still being washed, dried, or ironed to appear as ready.
+
+Do not add KPI cards, revenue summaries, or a separate report dashboard here. Laundry Logger already provides the relevant reporting overview.
+
+---
+
+## 4. Inventory
+
+### A. Beverages
+
+Retain the four existing KPI cards:
+- Total Items
+- Total Stock Value
+- Low Stock Items
+- Out of Stock Items
+
+Remove the supporting text from each KPI card without reducing its height.
+
+#### Remove beverage categories
+
+Remove the Category column, category field, and category-management workflow from the beverage inventory. Do not require users to classify beverages into categories such as soft drinks, alcohol, cocktails, juice, or water.
+
+#### Add Beverage Item form
+
+Provide the following fields:
+
+- Beverage Name — required.
+- SKU — automatically generated, unique, and stable.
+- Unit — the actual countable stock unit, such as bottle, can, pack, or another supported unit.
+- Initial Quantity — the number of countable units currently in stock.
+- Selling Price — the selling price per countable unit.
+- Low Stock Level — the quantity at which the item should be flagged as low stock.
+
+Remove:
+- Category
+- Purchase Cost
+- Supplier Name
+- Storage Location
+
+**Important stock-unit rule:** stock must be tracked in a consistent countable unit. For example, if a delivery contains 24 bottles, the stock quantity should represent 24 bottles rather than one crate, unless the system explicitly supports crate-to-bottle conversion. Do not allow a pack or crate to create ambiguity in stock calculations.
+
+If pack sizes are supported, store the pack conversion explicitly and convert all movements to the inventory's base unit. Otherwise, let the user select the actual countable unit and enter the quantity directly.
+
+The Low Stock Level must control the low-stock indicator. Do not hardcode a universal threshold.
+
+#### Beverage table
+
+Update the table to match the new model. Use the relevant columns:
+
+- SKU
+- Beverage Name
+- Unit
+- Quantity in Stock
+- Selling Price
+- Stock Status
+- Actions
+
+Remove the Category column and all removed fields.
+
+Keep search and filtering functional. Provide a stock-status filter for All, In Stock, Low Stock, and Out of Stock, plus a selling-price sort for lowest-to-highest and highest-to-lowest.
+
+In Actions, retain **Edit** and **Delete** only. Remove the extra filter/adjustment icon beside them.
+
+The Edit action should allow authorised staff to update the selling price and adjust the quantity through an appropriate stock adjustment workflow. Preserve stock history if the project already tracks it. Do not silently overwrite stock counts in a way that destroys existing movement records.
+
+### B. Food Inventory
+
+Treat Food Inventory as a list of foods the hotel sells, such as jollof rice, fried rice, coconut rice, and fish. This is not a raw-ingredient inventory or a supplier/expiry management page.
+
+Retain the existing KPI cards, but remove their supporting text and preserve the standard Overview KPI height.
+
+#### Rename the creation action
+
+Use **Add Food**, not Add Ingredient.
+
+#### Add Food form
+
+Fields:
+- Food Name — required.
+- SKU — automatically generated, unique, and stable.
+- Unit of Sale — selectable options such as Portion, Plate, and Pack.
+- Quantity in Stock — the current number of saleable units.
+- Selling Price — price per selected unit of sale.
+- Low Stock Level — the quantity that triggers a low-stock warning.
+
+Remove:
+- Category
+- Expiring Date
+- Storage Location
+- Supplier Name
+- Purchase Cost, if currently present
+
+Examples:
+- Fried Rice — Portion — 30 portions available — selling price per portion — low-stock level 5.
+- Fish — Piece — 20 pieces available — selling price per piece — low-stock level 5.
+
+Do not track the raw ingredients used to prepare a food item in this module. Ingredients and recipes can be addressed separately if needed later.
+
+Use consistent countable units and calculate low-stock status from the configured threshold.
+
+#### Food inventory table
+
+Use columns relevant to the new model:
+- SKU
+- Food Name
+- Unit of Sale
+- Quantity in Stock
+- Selling Price
+- Stock Status
+- Actions
+
+Remove Category and all removed fields.
+
+Add working stock-status filtering and selling-price sorting, from lowest to highest and highest to lowest.
+
+Keep only Edit and Delete in the Actions column. Remove the extra filter/adjustment icon.
+
+Editing should support price changes and appropriate stock adjustments while preserving relevant history.
+
+### C. KPI dimensions across Inventory
+
+Removing supporting text must not make Beverages or Food Inventory cards shorter. Their card height must remain identical to the Overview KPI card standard, even when the supporting-text element is absent.
+
+---
+
+## 5. Stock Keeper
+
+Rework the existing Supplies and Stock Movement area into a unified **Stock Keeper** module. Keep it within the current Inventory navigation for now; do not move it into Administration.
+
+This module tracks physical hotel supplies and equipment across hotel departments. It is distinct from Beverage and Food Inventory, which track items sold to customers.
+
+Examples include:
+- Rooms: towels, bedsheets, pillows, cups.
+- Bar: glassware, plates, spoons, service equipment.
+- Kitchen: pots, plates, utensils, equipment.
+- Laundry: detergents, hangers, laundry equipment.
+- Cleaning: cleaning supplies and materials.
+- Maintenance: tools, replacement parts, equipment.
+
+#### Stock Keeper page
+
+Create a practical stock register with a useful KPI row, following the universal KPI style and height.
+
+Use meaningful metrics such as:
+- Total Stock Items — number of tracked stock records.
+- Total Units in Stock — total countable units where aggregation is meaningful.
+- Low Stock Items — items at or below their configured reorder threshold.
+- Stock Adjustments — a meaningful period-based count of recorded stock adjustments, if the existing data supports it.
+
+Do not invent stock value figures or stock movement totals where the underlying records cannot support them.
+
+Provide two primary actions:
+- **Add Item**
+- **Manage Categories**
+
+#### Categories
+
+Allow authorised users to create and edit stock categories. Offer sensible default categories for hotel departments, including Rooms, Bar, Kitchen, Laundry, Cleaning, and Maintenance, while allowing additional categories to be created.
+
+Categories should identify where an item belongs or is primarily used. Do not force users to use only the default categories.
+
+#### Add Item form
+
+Include:
+- Item Name
+- SKU or Item ID, generated automatically and uniquely
+- Category/Department
+- Unit of Measurement
+- Initial Quantity
+- Low Stock Level
+- Optional notes, if already supported
+
+Track quantities in clear units such as pieces, bottles, packs, or other countable units. Do not invent supplier, cost, or storage fields unless an existing requirement or data model supports them.
+
+#### Stock movement and physical counting
+
+The purpose is to help the stock keeper reconcile physical stock with recorded stock.
+
+Provide a practical workflow to:
+- View the recorded quantity.
+- Record stock received or added.
+- Record stock issued or removed.
+- Perform a physical stock count.
+- Record the counted quantity.
+- Show the variance between the recorded and counted quantities.
+- Require a reason or note for adjustments where appropriate.
+- Preserve a dated movement history with the quantity change and relevant staff identity when available.
+
+Example: the system records 20 plates, but the physical count is 15. The stock keeper records the count, the variance is shown as -5, and the adjustment is recorded rather than silently changing the original record.
+
+Support searching, category filtering, low-stock filtering, and item-level movement history. Use existing permissions and staff records wherever available.
+
+---
+
+## 6. Finance & Intelligence — Expenses
+
+### A. Expense Management
+
+Remove the subtitle beneath Expense Management.
+
+Change the date filter from a toggle-style control to a compact dropdown with clear options such as Today, Last 7 Days, This Month, and Custom Range, consistent with the existing date-filter patterns.
+
+Remove the explanatory subtitle beneath the Record New Expense section, including the text about approved/pending expenses and financial statement integration.
+
+Retain the working **Record Expense** workflow.
+
+#### Expense form
+
+Preserve the existing relevant fields:
+- Expense Description
+- Hotel Branch, only if branch support is enabled and relevant
+- Amount
+- Expense Date
+- Payment Method
+- Approval Status
+- Responsible Staff Member
+
+Keep validation and existing approval behaviour.
+
+### B. Expense categories
+
+Replace the Export CSV primary action in the Expense Management header with **Manage Expense Categories**.
+
+Allow authorised users to create and manage expense categories. When creating or editing a category, allow the user to choose a colour.
+
+These category colours must be used consistently in the Expense by Category chart and related category indicators. Use a clear colour palette with sufficient contrast.
+
+Preserve existing categories and map existing expense records to their correct categories. Do not create duplicate categories during migration.
+
+### C. Expense table controls
+
+Remove the existing standalone filter control if it duplicates the table's filter functionality.
+
+Provide:
+- Category filtering.
+- Approval/status filtering.
+- A clear **Export CSV** action.
+- A compact up/down sort control for ordering expenses by newest/oldest.
+
+The up/down control should change the sort order; it should not replace the category or status filters.
+
+Export CSV must produce the currently supported expense records and relevant columns. Respect active filters where that is the established behaviour.
+
+### D. Expense KPI cards
+
+Retain the existing four KPI titles and figures. Remove only the supporting text and preserve the standard Overview KPI height.
+
+All KPI figures must use the underlying expense records and the relevant reporting period. Pending and approved expenses must remain distinguishable wherever approval affects financial reporting.
+
+---
+
+## 7. Finance & Intelligence — Reports
+
+### A. Page heading and filters
+
+Remove all subtitles beneath the main Finance Reports heading and the individual report section headings.
+
+Remove the All Hotel Branches filter from the Finance Reports page. The global branch selector, if applicable, already handles branch context. Avoid redundant branch filters.
+
+Change the report date filter from a toggle-style control to a consistent dropdown with supported periods and Custom Range.
+
+Retain the Export Financial Ledger action.
+
+### B. KPI cards
+
+Retain the existing figures and titles:
+- Total Revenue
+- Total Expense
+- Net Profit
+- Outstanding Receivables
+
+Remove the supporting text from each card without reducing card height.
+
+Use consistent reporting periods and ensure net profit is calculated according to the application's existing financial rules. Outstanding receivables must reflect genuinely outstanding balances, not all unpaid or pending records indiscriminately if the data model distinguishes them.
+
+### C. Revenue versus Expense Trends
+
+Keep the existing area chart.
+
+- Remove the section subtitle.
+- Maintain clean chart spacing and alignment.
+- Ensure the date filter updates the chart.
+- Use actual revenue and expense records for the selected period.
+- Provide a clear legend, readable axes, and a clean hover tooltip.
+- Do not show an unnecessary large ash-coloured hover background.
+
+### D. Revenue by Department
+
+Keep the existing pie chart and its useful visual presentation.
+
+Remove the section subtitle. Use actual department revenue for supported sources such as Rooms, Bar & POS, Restaurant, and Laundry. Do not invent department revenue.
+
+### E. Expense by Category
+
+Retain the horizontal bar-chart concept but correct its layout.
+
+- Remove the subtitle.
+- Increase the chart's usable size so the bars and labels are readable.
+- Align the chart content and category labels consistently with the section heading.
+- Keep category labels left-aligned and avoid awkward indentation or inconsistent starting positions.
+- Use the configured expense-category colours.
+- On hover, highlight the relevant bar and show a clean tooltip. Remove the oversized ash background.
+- Ensure the chart responds to the selected date range and applicable filters.
+
+### F. Revenue by Payment Method
+
+Keep the existing chart and progress-bar presentation, which is visually useful.
+
+Remove the section subtitle. Replace the uniform black progress bars with a coordinated set of distinct, readable colours. Keep the palette restrained and consistent with the muted-purple design system.
+
+Figures must come from actual recorded payments and supported payment methods.
+
+### G. Consolidated Financial Ledger
+
+Keep the existing ledger table and its relevant columns:
+- Reference ID
+- Date
+- Stream
+- Description
+- Guest/Customer
+- Payment Method
+- Status
+- Amount
+
+Do not display an unlimited list of transactions on one page.
+
+Implement pagination with **10 rows per page**, page numbers, previous/next controls, and a clear indication of the current page and total records. Pagination must operate on the actual filtered result set.
+
+Search and filters must continue working with pagination. Changing filters should return the user to a valid page rather than displaying an empty page due to a stale page index.
+
+---
+
+## 8. Administration — Staff & Permissions
+
+### A. Page heading
+
+Remove the subtitle beneath Staff & Permissions.
+
+Remove all four KPI cards from this page. Do not replace them with another KPI row.
+
+This page is for managing staff records and access permissions, not for tracking shift attendance or building an HR analytics dashboard.
+
+### B. Add Staff Member form
+
+Keep the existing Add Staff Member action and form, but make these changes:
+
+- Staff Name — required.
+- Email — optional or required according to existing validation and account requirements.
+- Phone Number — preserve the existing field and validation.
+- Role/Job Title — **free-text input**, not a predefined dropdown. Examples include Accountant, Receptionist, Hotel Manager, Laundry Attendant, and Stock Keeper.
+- Assigned Department — a dropdown containing relevant departments, such as Guests/Customer Management, Rooms, Bar & POS, Restaurant/Kitchen, Laundry, Inventory/Stock Keeper, Finance, and All Departments. Include Other; selecting Other reveals a field to enter the department manually.
+- Branch — include only if branch support is enabled and the project uses branches.
+- Remove Shift entirely.
+
+Do not confuse a staff member's job title with their access permissions. Keep role-based access control separate from the free-text job title. If the current system uses role definitions to grant permissions, preserve that permission system and make sure the UI clearly distinguishes job title from assigned access role.
+
+Validate required fields and preserve existing save/edit behaviour.
+
+### C. Staff table and access
+
+Preserve the existing staff list, editing, activation/deactivation, and permission-management functionality where implemented.
+
+Do not remove permission controls simply because the KPI cards are being removed. Ensure staff can still be assigned the appropriate access level using the application's existing permission model.
+
+---
+
+## 9. Administration — Hotel Settings
+
+### A. General layout
+
+Remove the subtitle beneath Hotel Settings.
+
+The current page feels overcrowded and visually shouty. Simplify spacing and hierarchy, retain the existing useful sections, and use the shared component system.
+
+Use different restrained colours for the four individual section icons instead of rendering every icon in the same colour. Avoid decorative colour backgrounds that add clutter.
+
+### B. Hotel Profile & Branding
+
+Remove the subtitle beneath this section.
+
+Keep the relevant settings:
+- Hotel Name
+- Brand Tagline
+- Reservation Email
+- Front Desk Phone Number
+- Headquarters/Address
+
+Preserve existing validation and save functionality.
+
+### C. Remove Check-in, Check-out & Housekeeping Rules
+
+Remove the entire Check-in, Check-out & Housekeeping Rules settings section as requested. Do not leave empty card space or a dead navigation item.
+
+Do not delete data or shared settings that other existing features still depend on without first checking their usage. Remove this section from the visible Hotel Settings interface.
+
+### D. Currency, Tax & Date Format
+
+Retain only:
+- Currency
+- Tax Percentage
+- Date Format
+- Time Zone
+
+Move Time Zone into this section.
+
+Remove Expense Categories from Hotel Settings. Expense category creation and colour management belong in Expense Management.
+
+Changes should be saved and applied consistently wherever the existing application uses these settings. Do not silently convert historical transactions when a currency or tax setting changes.
+
+### E. Notifications & Threshold Alerts
+
+Keep this section, but simplify it into clearly labelled toggle/checkbox settings.
+
+Provide controls for alerts such as:
+- Low Stock
+- Outstanding or Overdue Payments
+- Laundry Ready for Collection / Uncollected Laundry
+
+Use the existing notification model if one exists. Do not imply that email, SMS, or push delivery is working unless that integration is implemented.
+
+Where an alert has a configurable threshold, show the relevant threshold field only when appropriate. Keep the controls accessible and clearly distinguish enabled from disabled states.
+
+---
+
+## 10. Administration — Operational Modules
+
+### A. Simplify the page
+
+Remove the subtitle beneath Operational Modules & Future Extensions.
+
+Remove all four existing KPI cards.
+
+Remove all existing module cards unrelated to the four approved modules. Do not retain disabled placeholders for spa, wellness, conference, banquet, or other unrequested modules.
+
+The page should contain exactly four operational module cards:
+
+1. **Hotel Operations**
+2. **Bar & POS**
+3. **Kitchen & Restaurant**
+4. **Laundry**
+
+Each card should have:
+- Module name.
+- A suitable icon.
+- A short, practical description only if it improves clarity.
+- An Enable/Disable control.
+- A clear indication of the current enabled state.
+
+Use the established muted-purple CTA and control styling. Avoid a busy dashboard layout.
+
+### B. Module dependencies and navigation
+
+Enabling or disabling a module must change the actual application state, not merely its visual appearance.
+
+- Disabling Hotel Operations removes its relevant operational navigation entries from the sidebar.
+- Disabling Bar & POS removes Bar & POS from the sidebar and hides its operational screens.
+- Disabling Kitchen & Restaurant removes that module from the sidebar and hides its operational screens.
+- Disabling Laundry removes Laundry from the sidebar and hides its operational screens.
+
+Inventory dependencies:
+- When Bar & POS is disabled, hide the **Beverages** inventory screen because it is tied to the bar workflow.
+- When Kitchen & Restaurant is disabled, hide the **Food Inventory** screen because it is tied to the kitchen/restaurant workflow.
+- Do not hide Stock Keeper merely because Bar & POS or Kitchen & Restaurant is disabled. Stock Keeper is a separate general hotel inventory function.
+
+Re-enabling a module must restore its navigation and screens without losing saved records or configuration.
+
+Do not delete historical bookings, orders, sales, laundry records, stock records, or reports when disabling a module. Disabling a module is an operational visibility/access setting, not a data-deletion action.
+
+Ensure direct URL navigation to a disabled module is handled gracefully, with an appropriate redirect or disabled-module message rather than a broken page.
+
+Respect existing permissions and prevent unauthorised users from changing module settings.
+
+---
+
+## 11. Shared data and functionality checks
+
+After implementation, verify the following end-to-end behaviours.
+
+### Laundry
+- A guest can be searched by name or room number.
+- Selecting an existing guest fills the appropriate information.
+- Walk-in customers can be entered manually.
+- Multiple garments can be added to one order.
+- Order totals calculate from garment line items.
+- Payment status reflects the amount actually paid.
+- Processing orders do not appear in Ready for Collection prematurely.
+- Ready orders appear in Laundry Storage.
+- Marking an order collected moves it to the Collected view.
+- Laundry KPIs and revenue respect the selected date filter.
+
+### Inventory
+- SKUs are unique and stable.
+- Stock quantities use clear countable units.
+- Selling prices and low-stock levels can be edited.
+- Stock status updates when quantities change.
+- Filters and price sorting return correct results.
+- Stock Keeper adjustments preserve an auditable movement history.
+
+### Finance
+- Expense categories can be created and assigned colours.
+- Expense records use their actual category, approval status, date, and payment data.
+- CSV exports contain the expected records.
+- Report filters affect charts and ledger rows.
+- Financial figures reconcile with the underlying records and existing calculation rules.
+- The financial ledger displays no more than 10 rows per page.
+
+### Administration
+- Staff job titles can be entered manually.
+- Department assignment supports predefined departments, All Departments, and Other.
+- Shift is no longer required in the Add Staff Member form.
+- Permission management remains functional.
+- Hotel settings save and apply correctly.
+- Module toggles affect the sidebar and page access without deleting data.
+- Dependent inventory screens follow the corresponding module settings.
+
+### Final visual QA
+- All primary CTAs use the consistent muted-purple brand colour; remove leftover peach/coral and black primary buttons.
+- KPI cards remain the same height as the Overview reference after supporting text is removed.
+- Custom date pickers no longer use default browser styling.
+- All affected pages use Outfit and consistent control styling.
+- Remove all subtitles explicitly requested above.
+- Verify desktop and responsive layouts, including table overflow, modal sizing, form spacing, and dropdown positioning.
+- Check the browser console for new errors and confirm that all relevant interactions work.
+
+**Scope boundary:** Complete this batch through Laundry, Inventory, Finance & Intelligence, and Administration. Do not introduce unrelated modules or start a separate redesign. After these changes, the next stage should focus on functional hardening, persistent data/backend integration where needed, permissions, and real-world workflow testing.

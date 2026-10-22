@@ -1,0 +1,6 @@
+{
+  "name": "Lumina Hotel Suites",
+  "description": "Comprehensive hotel operations, booking timeline, POS, laundry, inventory, and financial management dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
