@@ -139,6 +139,15 @@ export function getPresetDateRange(
       toDate: today,
     };
   }
+  if (preset === 'last30') {
+    return {
+      preset: 'last30',
+      startDate: '2026-09-22',
+      endDate: today,
+      fromDate: '2026-09-22',
+      toDate: today,
+    };
+  }
   if (preset === 'month') {
     return {
       preset: 'month',

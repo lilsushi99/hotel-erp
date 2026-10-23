@@ -1,4 +1,4 @@
-export type DateFilterPreset = 'today' | 'last7' | 'month' | 'custom';
+export type DateFilterPreset = 'today' | 'last7' | 'last30' | 'month' | 'custom';
 
 export interface DateRangeFilter {
   preset: DateFilterPreset;

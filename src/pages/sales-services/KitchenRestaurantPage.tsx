@@ -29,6 +29,7 @@ import {
   StatusBadge,
   Pagination,
   EmptyState,
+  DateRangeControl,
 } from '../../components/ui/PageControls';
 import {
   formatCompactCurrency,
@@ -79,6 +80,8 @@ export const KitchenRestaurantPage: React.FC = () => {
   // Ledger search & filter state
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [ledgerPaymentFilter, setLedgerPaymentFilter] = useState('ALL');
+  const [ledgerDateFrom, setLedgerDateFrom] = useState('2026-10-01');
+  const [ledgerDateTo, setLedgerDateTo] = useState('2026-10-31');
   const [ledgerPage, setLedgerPage] = useState(1);
 
   const guestSelectorRef = useRef<HTMLDivElement>(null);
@@ -157,11 +160,20 @@ export const KitchenRestaurantPage: React.FC = () => {
     );
   }, [checkedInBookings, guestSearchQuery]);
 
+  const dateFilteredRestaurantOrders = useMemo(() => {
+    return restaurantOrders.filter((t) => {
+      const txDate = t.date || t.dateTime.slice(0, 10);
+      if (ledgerDateFrom && txDate < ledgerDateFrom) return false;
+      if (ledgerDateTo && txDate > ledgerDateTo) return false;
+      return true;
+    });
+  }, [restaurantOrders, ledgerDateFrom, ledgerDateTo]);
+
   // 4 KPI Cards for Kitchen Order Ledger
   const kpis = useMemo(() => {
-    const revenue = restaurantOrders.reduce((s, t) => s + t.totalAmount, 0);
-    const totalOrders = restaurantOrders.length;
-    const unpaidFolio = restaurantOrders
+    const revenue = dateFilteredRestaurantOrders.reduce((s, t) => s + t.totalAmount, 0);
+    const totalOrders = dateFilteredRestaurantOrders.length;
+    const unpaidFolio = dateFilteredRestaurantOrders
       .filter((t) => t.paymentStatus !== 'Paid')
       .reduce((s, t) => s + (t.totalAmount - t.amountPaid), 0);
     return {
@@ -170,7 +182,7 @@ export const KitchenRestaurantPage: React.FC = () => {
       unpaidFolio,
       menuCount: branchFoodItems.length,
     };
-  }, [restaurantOrders, branchFoodItems.length]);
+  }, [dateFilteredRestaurantOrders, branchFoodItems.length]);
 
   const filteredFoodItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -312,7 +324,7 @@ export const KitchenRestaurantPage: React.FC = () => {
 
   const filteredLedger = useMemo(() => {
     const q = ledgerSearch.trim().toLowerCase();
-    return restaurantOrders.filter((t) => {
+    return dateFilteredRestaurantOrders.filter((t) => {
       if (
         q &&
         !t.id.toLowerCase().includes(q) &&
@@ -328,7 +340,7 @@ export const KitchenRestaurantPage: React.FC = () => {
       }
       return true;
     });
-  }, [restaurantOrders, ledgerSearch, ledgerPaymentFilter]);
+  }, [dateFilteredRestaurantOrders, ledgerSearch, ledgerPaymentFilter]);
 
   const paginatedLedger = useMemo(() => {
     const start = (ledgerPage - 1) * 8;
@@ -340,31 +352,44 @@ export const KitchenRestaurantPage: React.FC = () => {
       <PageHeader
         title="Kitchen & Restaurant"
         actions={
-          <div className="inline-flex items-center bg-[#EAEAE4] p-1 rounded-[10px]">
-            <button
-              type="button"
-              onClick={() => setActiveTab('pos')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
-                activeTab === 'pos'
-                  ? 'bg-white text-[#1E1E1E] shadow-xs'
-                  : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
-              }`}
-            >
-              <UtensilsCrossed className="w-3.5 h-3.5" />
-              Restaurant Menu & POS
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('ledger')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
-                activeTab === 'ledger'
-                  ? 'bg-white text-[#1E1E1E] shadow-xs'
-                  : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
-              }`}
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              Kitchen Order Ledger ({restaurantOrders.length})
-            </button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {activeTab === 'ledger' && (
+              <DateRangeControl
+                fromDate={ledgerDateFrom}
+                toDate={ledgerDateTo}
+                onChange={(from, to) => {
+                  setLedgerDateFrom(from);
+                  setLedgerDateTo(to);
+                  setLedgerPage(1);
+                }}
+              />
+            )}
+            <div className="inline-flex items-center bg-[#EAEAE4] p-1 rounded-[10px]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('pos')}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
+                  activeTab === 'pos'
+                    ? 'bg-white text-[#1E1E1E] shadow-xs'
+                    : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
+                }`}
+              >
+                <UtensilsCrossed className="w-3.5 h-3.5" />
+                Restaurant Menu & POS
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('ledger')}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
+                  activeTab === 'ledger'
+                    ? 'bg-white text-[#1E1E1E] shadow-xs'
+                    : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                Kitchen Order Ledger ({dateFilteredRestaurantOrders.length})
+              </button>
+            </div>
           </div>
         }
       />
@@ -385,7 +410,7 @@ export const KitchenRestaurantPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedQuickFoodId('ALL')}
-                  className={`px-3 py-1.5 rounded-[9px] text-[12px] font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[7px] text-[11.5px] font-normal transition-colors whitespace-nowrap cursor-pointer ${
                     selectedQuickFoodId === 'ALL'
                       ? 'bg-[#7463A6] text-white'
                       : 'bg-[#F6F6F4] text-[#6E6E6A] hover:text-[#1E1E1E]'
@@ -402,7 +427,7 @@ export const KitchenRestaurantPage: React.FC = () => {
                         prev === food.id ? 'ALL' : food.id
                       )
                     }
-                    className={`px-3 py-1.5 rounded-[9px] text-[12px] font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-[7px] text-[11.5px] font-normal transition-colors whitespace-nowrap cursor-pointer ${
                       selectedQuickFoodId === food.id
                         ? 'bg-[#7463A6] text-white'
                         : 'bg-[#F6F6F4] text-[#6E6E6A] hover:text-[#1E1E1E]'

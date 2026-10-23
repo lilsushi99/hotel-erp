@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useHotel } from '../../context/HotelContext';
 import { KpiCard } from '../../components/ui/KpiCard';
+import { Dropdown } from '../../components/ui/Dropdown';
 import {
   PageHeader,
   TableToolbar,
@@ -298,26 +299,26 @@ export const BeveragesPage: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#EFEFEF] bg-[#FAFAFA]">
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                  <tr className="border-b border-[#EFEFEF] bg-[#FAFAFA] whitespace-nowrap">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                       SKU
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                       Beverage Name
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                       Unit
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                       Quantity in Stock
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] text-right">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] text-right whitespace-nowrap">
                       Selling Price
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                       Stock Status
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] text-right">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] text-right whitespace-nowrap">
                       Actions
                     </th>
                   </tr>
@@ -331,47 +332,47 @@ export const BeveragesPage: React.FC = () => {
                     return (
                       <tr
                         key={bev.id}
-                        className="hover:bg-[#FAFAFA] transition-colors"
+                        className="hover:bg-[#FAFAFA] transition-colors whitespace-nowrap"
                       >
-                        <td className="py-3.5 px-4 font-mono text-[12px] font-semibold text-[#6B7280]">
+                        <td className="py-3.5 px-4 font-mono text-[12px] font-normal text-[#6B7280] whitespace-nowrap">
                           {bev.sku}
                         </td>
-                        <td className="py-3.5 px-4 font-semibold text-[#111111]">
+                        <td className="py-3.5 px-4 font-normal text-[#1E1E1E] whitespace-nowrap">
                           {bev.name}
                         </td>
-                        <td className="py-3.5 px-4 text-[#374151]">
+                        <td className="py-3.5 px-4 font-normal text-[#374151] whitespace-nowrap">
                           {bev.unit}
                         </td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-bold text-[#111111] tabular-nums">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className="font-normal text-[#1E1E1E] tabular-nums">
                             {bev.availableQuantity}
                           </span>
-                          <span className="text-[11px] text-[#6B7280] ml-1.5">
+                          <span className="text-[11px] font-normal text-[#6B7280] ml-1.5">
                             (Low at {bev.reorderThreshold})
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-semibold text-[#111111] tabular-nums">
+                        <td className="py-3.5 px-4 text-right font-normal text-[#1E1E1E] tabular-nums whitespace-nowrap">
                           {formatCurrency(
                             bev.sellingPrice,
                             settings.currencySymbol
                           )}
                         </td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
                           <StatusBadge status={status} />
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
                             <button
                               onClick={() => openEditModal(bev)}
                               title="Edit Beverage"
-                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6]"
+                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6] cursor-pointer"
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => deleteBeverage(bev.id)}
                               title="Delete Beverage"
-                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2]"
+                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -387,18 +388,19 @@ export const BeveragesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Add / Edit Beverage Item Modal */}
+      {/* Add / Edit Beverage Item Modal — 2-row, 3-column grid */}
       <Modal
         isOpen={showItemModal}
         onClose={() => setShowItemModal(false)}
         title={editingItem ? 'Edit Beverage Item' : 'Add Beverage Item'}
-        size="md"
+        size="lg"
       >
         <form onSubmit={handleSaveItem} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-                Beverage Name *
+          {/* Row 1: Beverage Name | Unit | Initial Quantity */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div>
+              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                Beverage Name <span className="text-[#B93829]">*</span>
               </label>
               <input
                 type="text"
@@ -406,58 +408,21 @@ export const BeveragesPage: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Hennessy VSOP (70cl)"
-                className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
+                className="w-full px-3 py-2 border border-[#E2E2DC] rounded-[10px] text-[13px] font-normal text-[#1E1E1E] focus:outline-none focus:border-[#7463A6]"
               />
             </div>
-            <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-                SKU (Auto)
-              </label>
-              <input
-                type="text"
-                readOnly
-                value={sku}
-                className="w-full px-3.5 py-2 bg-[#F9FAFB] border border-[#E5E7EB] rounded-[10px] text-[13px] font-mono text-[#6B7280]"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-                Unit
-              </label>
-              <select
+              <Dropdown
+                label="Unit"
                 value={unit}
-                onChange={(e) => setUnit(e.target.value as BeverageUnit)}
-                className="w-full px-3.5 py-2 bg-white border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
-              >
-                {BEVERAGE_UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-                Selling Price (₦)
-              </label>
-              <input
-                type="number"
-                min={0}
-                step={100}
-                required
-                value={sellingPrice}
-                onChange={(e) => setSellingPrice(Number(e.target.value))}
-                className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
+                onChange={(v) => setUnit(v as BeverageUnit)}
+                options={BEVERAGE_UNITS.map((u) => ({ value: u, label: u }))}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
+              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
                 {editingItem ? 'Quantity in Stock' : 'Initial Quantity'}
               </label>
               <input
@@ -466,11 +431,42 @@ export const BeveragesPage: React.FC = () => {
                 required
                 value={availableQuantity}
                 onChange={(e) => setAvailableQuantity(Number(e.target.value))}
-                className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
+                className="w-full px-3 py-2 border border-[#E2E2DC] rounded-[10px] text-[13px] font-normal text-[#1E1E1E] tabular-nums focus:outline-none focus:border-[#7463A6]"
               />
             </div>
+          </div>
+
+          {/* Row 2: SKU (Auto) | Selling Price (₦) | Low Stock Level */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
+              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                SKU (Auto)
+              </label>
+              <input
+                type="text"
+                readOnly
+                value={sku}
+                className="w-full px-3 py-2 bg-[#FAF9F6] border border-[#E2E2DC] rounded-[10px] text-[13px] font-mono text-[#6E6E6A]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                Selling Price ({settings.currencySymbol})
+              </label>
+              <input
+                type="number"
+                min={0}
+                step={100}
+                required
+                value={sellingPrice}
+                onChange={(e) => setSellingPrice(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-[#E2E2DC] rounded-[10px] text-[13px] font-normal text-[#1E1E1E] tabular-nums focus:outline-none focus:border-[#7463A6]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
                 Low Stock Level
               </label>
               <input
@@ -479,7 +475,7 @@ export const BeveragesPage: React.FC = () => {
                 required
                 value={reorderThreshold}
                 onChange={(e) => setReorderThreshold(Number(e.target.value))}
-                className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
+                className="w-full px-3 py-2 border border-[#E2E2DC] rounded-[10px] text-[13px] font-normal text-[#1E1E1E] tabular-nums focus:outline-none focus:border-[#7463A6]"
               />
             </div>
           </div>

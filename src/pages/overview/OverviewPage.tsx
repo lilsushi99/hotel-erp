@@ -744,13 +744,13 @@ export const OverviewPage: React.FC = () => {
         {/* 1. Revenue Trend (Double-Surface, No Subtitle) */}
         <div className="lg:col-span-2 bg-[#F0F0F0] p-[2.5px] rounded-[14px] flex flex-col">
           {/* Outer Shell Header */}
-          <div className="px-3.5 pt-2 pb-1.5 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-[15.5px] font-medium text-[#1E1E1E] leading-snug">
+          <div className="px-3.5 pt-2 pb-1.5 min-h-[42px] flex items-center justify-between gap-2">
+            <h2 className="text-[15.5px] font-medium text-[#1E1E1E] leading-snug whitespace-nowrap">
               Revenue Trend
             </h2>
 
             {/* Right-aligned Revenue Source & Independent Date Range Dropdown */}
-            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <div className="flex items-center gap-2 shrink-0">
               <Dropdown
                 value={revenueSource}
                 options={revenueSourceOptions}
@@ -831,22 +831,15 @@ export const OverviewPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Expenses by Category (Double-Surface, No Subtitle) */}
+        {/* 2. Expenses by Category (Double-Surface, No Subtitle, Independent Date Filter Only) */}
         <div className="bg-[#F0F0F0] p-[2.5px] rounded-[14px] flex flex-col">
-          {/* Outer Shell Header */}
-          <div className="px-3.5 pt-2 pb-1.5 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-[15.5px] font-medium text-[#1E1E1E] leading-snug">
+          {/* Outer Shell Header — Aligned horizontally with Revenue Trend Header */}
+          <div className="px-3.5 pt-2 pb-1.5 min-h-[42px] flex items-center justify-between gap-2">
+            <h2 className="text-[15.5px] font-medium text-[#1E1E1E] leading-snug whitespace-nowrap">
               Expenses
             </h2>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Dropdown
-                value={expenseCategoryFilter}
-                options={expenseCategoryOptions}
-                onChange={setExpenseCategoryFilter}
-                size="sm"
-                className="w-[142px] shrink-0"
-              />
+            <div className="flex items-center gap-1.5 shrink-0">
               <DateRangeControl
                 value={expDateFilter}
                 onChange={setExpDateFilter}

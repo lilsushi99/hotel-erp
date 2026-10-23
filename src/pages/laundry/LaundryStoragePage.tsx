@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Archive, Eye, Users } from 'lucide-react';
+import { Archive, Eye, Clock } from 'lucide-react';
 import { useHotel } from '../../context/HotelContext';
 import { Dropdown } from '../../components/ui/Dropdown';
 import {
@@ -12,12 +12,17 @@ import {
 import { Drawer } from '../../components/ui/Overlay';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { LaundryOrder } from '../../types/hotel';
-import { formatDate, formatCurrency } from '../../utils/formatters';
+import {
+  formatDate,
+  formatCurrency,
+  calculateNights,
+  TODAY_STR,
+} from '../../utils/formatters';
 
 export const LaundryStoragePage: React.FC = () => {
-  const { laundryOrders, guests, selectedBranchId, settings } = useHotel();
+  const { laundryOrders, selectedBranchId, settings } = useHotel();
 
-  const [activeTab, setActiveTab] = useState<string>('Ready for Collection');
+  const [activeTab, setActiveTab] = useState<string>('ALL');
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [page, setPage] = useState(1);
@@ -50,73 +55,22 @@ export const LaundryStoragePage: React.FC = () => {
     [storageEligibleOrders]
   );
 
-  // Laundry CRM records derived from shared customers with laundry orders
-  const laundryCrmCustomers = useMemo(() => {
-    const branchLaundry = laundryOrders.filter(
-      (o) => selectedBranchId === 'ALL' || o.branchId === selectedBranchId
-    );
-    const map = new Map<
-      string,
-      {
-        id: string;
-        name: string;
-        phone: string;
-        address: string;
-        ordersCount: number;
-        totalGarments: number;
-        totalSpend: number;
-        lastOrderDate: string;
-      }
-    >();
+  const overdueStorageOrders = useMemo(
+    () =>
+      awaitingCollectionOrders.filter((o) => {
+        const refDate = o.readyDate || o.promisedDate || o.receivedDate;
+        return calculateNights(refDate, TODAY_STR) > 3;
+      }),
+    [awaitingCollectionOrders]
+  );
 
-    branchLaundry.forEach((o) => {
-      const key = o.guestId || o.customerPhone || o.customerName;
-      const existing = map.get(key);
-      const garmentCount = o.garments.reduce((s, g) => s + g.quantity, 0);
-      const addr = o.roomNumber
-        ? `Room ${o.roomNumber}`
-        : o.customerAddress || 'Walk-in';
-      if (existing) {
-        existing.ordersCount += 1;
-        existing.totalGarments += garmentCount;
-        existing.totalSpend += o.totalAmount;
-        if (o.receivedDate > existing.lastOrderDate) {
-          existing.lastOrderDate = o.receivedDate;
-        }
-      } else {
-        const matchedGuest = guests.find((g) => g.id === o.guestId);
-        map.set(key, {
-          id: matchedGuest?.id || `LND-CUST-${map.size + 1}`,
-          name: o.customerName,
-          phone: o.customerPhone,
-          address: addr,
-          ordersCount: 1,
-          totalGarments: garmentCount,
-          totalSpend: o.totalAmount,
-          lastOrderDate: o.receivedDate,
-        });
-      }
-    });
-
-    const q = search.trim().toLowerCase();
-    return Array.from(map.values())
-      .filter((c) => {
-        if (!q) return true;
-        return (
-          c.name.toLowerCase().includes(q) ||
-          c.phone.toLowerCase().includes(q) ||
-          c.id.toLowerCase().includes(q) ||
-          c.address.toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) =>
-        sortOrder === 'newest'
-          ? b.lastOrderDate.localeCompare(a.lastOrderDate)
-          : a.lastOrderDate.localeCompare(b.lastOrderDate)
-      );
-  }, [laundryOrders, guests, selectedBranchId, search, sortOrder]);
-
+  // Tabs ordered strictly as: All | Awaiting Collection | Collected
   const tabs = [
+    {
+      id: 'ALL',
+      label: 'All',
+      count: storageEligibleOrders.length,
+    },
     {
       id: 'Ready for Collection',
       label: 'Awaiting Collection',
@@ -126,16 +80,6 @@ export const LaundryStoragePage: React.FC = () => {
       id: 'Collected',
       label: 'Collected',
       count: collectedOrders.length,
-    },
-    {
-      id: 'ALL',
-      label: 'All',
-      count: storageEligibleOrders.length,
-    },
-    {
-      id: 'CRM',
-      label: 'Laundry CRM',
-      count: laundryCrmCustomers.length,
     },
   ];
 
@@ -172,14 +116,37 @@ export const LaundryStoragePage: React.FC = () => {
     return filteredOrders.slice(start, start + pageSize);
   }, [filteredOrders, page]);
 
-  const paginatedCrm = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return laundryCrmCustomers.slice(start, start + pageSize);
-  }, [laundryCrmCustomers, page]);
-
   return (
     <div className="space-y-5">
       <PageHeader title="Laundry Storage" />
+
+      {/* Overdue >3 Days Notice Banner */}
+      {overdueStorageOrders.length > 0 && (
+        <div className="bg-[#FDF4E7] border border-[#F5D7B0] rounded-[12px] px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-[12.5px] text-[#9A5B13]">
+            <Clock className="w-4 h-4 shrink-0" />
+            <span>
+              <strong className="font-medium">
+                {overdueStorageOrders.length}{' '}
+                {overdueStorageOrders.length === 1 ? 'order has' : 'orders have'}
+              </strong>{' '}
+              remained uncollected in Laundry Storage for more than 3 days.
+            </span>
+          </div>
+          {activeTab !== 'Ready for Collection' && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('Ready for Collection');
+                setPage(1);
+              }}
+              className="px-2.5 py-1 rounded-[7px] bg-white text-[#9A5B13] text-[11.5px] font-medium hover:bg-[#FAF0E1] transition-colors cursor-pointer whitespace-nowrap"
+            >
+              View Awaiting Collection
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Main Storage Card (No KPI cards) */}
       <div className="bg-white rounded-[14px] shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
@@ -201,11 +168,7 @@ export const LaundryStoragePage: React.FC = () => {
               setSearch(v);
               setPage(1);
             }}
-            placeholder={
-              activeTab === 'CRM'
-                ? 'Search laundry customer name, phone, or room/address...'
-                : 'Search order ID, customer name, phone, or garment description...'
-            }
+            placeholder="Search order ID, customer name, phone, or garment description..."
             className="w-full sm:w-80"
           />
 
@@ -224,78 +187,7 @@ export const LaundryStoragePage: React.FC = () => {
           />
         </div>
 
-        {activeTab === 'CRM' ? (
-          /* Laundry CRM View */
-          laundryCrmCustomers.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="No laundry customers found"
-              description="Customer profiles created or linked through Laundry Logger appear here."
-            />
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#EFEFEA] bg-[#FAF9F6] text-[12px] font-medium text-[#6E6E6A] whitespace-nowrap">
-                      <th className="py-3.5 px-5 whitespace-nowrap">Customer ID</th>
-                      <th className="py-3.5 px-4 whitespace-nowrap">Customer</th>
-                      <th className="py-3.5 px-4 whitespace-nowrap">Phone Number</th>
-                      <th className="py-3.5 px-4 whitespace-nowrap">Address</th>
-                      <th className="py-3.5 px-4 text-right whitespace-nowrap">
-                        Laundry Orders
-                      </th>
-                      <th className="py-3.5 px-4 text-right whitespace-nowrap">
-                        Total Garments
-                      </th>
-                      <th className="py-3.5 px-4 text-right whitespace-nowrap">
-                        Total Spend
-                      </th>
-                      <th className="py-3.5 px-5 whitespace-nowrap">Last Order</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F2F2EE] text-[13.5px]">
-                    {paginatedCrm.map((c) => (
-                      <tr key={c.id} className="hover:bg-[#F8F8F5] transition-colors">
-                        <td className="py-3.5 px-5 font-medium text-[#1E1E1E] tabular-nums whitespace-nowrap">
-                          {c.id}
-                        </td>
-                        <td className="py-3.5 px-4 font-medium text-[#1E1E1E] whitespace-nowrap">
-                          {c.name}
-                        </td>
-                        <td className="py-3.5 px-4 text-[#4A4A46] tabular-nums whitespace-nowrap">
-                          {c.phone}
-                        </td>
-                        <td className="py-3.5 px-4 text-[#4A4A46] whitespace-nowrap">
-                          {c.address}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-medium text-[#1E1E1E] tabular-nums whitespace-nowrap">
-                          {c.ordersCount}
-                        </td>
-                        <td className="py-3.5 px-4 text-right text-[#4A4A46] tabular-nums whitespace-nowrap">
-                          {c.totalGarments} pcs
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-medium text-[#1E1E1E] tabular-nums whitespace-nowrap">
-                          {formatCurrency(c.totalSpend, settings.currencySymbol)}
-                        </td>
-                        <td className="py-3.5 px-5 text-[#6E6E6A] tabular-nums whitespace-nowrap">
-                          {formatDate(c.lastOrderDate)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <Pagination
-                currentPage={page}
-                totalItems={laundryCrmCustomers.length}
-                pageSize={pageSize}
-                onPageChange={setPage}
-              />
-            </>
-          )
-        ) : filteredOrders.length === 0 ? (
+        {filteredOrders.length === 0 ? (
           <EmptyState
             icon={Archive}
             title={
@@ -306,7 +198,7 @@ export const LaundryStoragePage: React.FC = () => {
             description={
               activeTab === 'Ready for Collection'
                 ? 'Orders appear here once their workflow status reaches Ready for Collection in Laundry Logger.'
-                : 'Completed orders marked as Collected in Laundry Logger appear here.'
+                : 'Completed orders marked as Ready for Collection or Collected in Laundry Logger appear here.'
             }
           />
         ) : (
@@ -343,6 +235,13 @@ export const LaundryStoragePage: React.FC = () => {
                     const descriptionText = order.garments
                       .map((i) => `${i.quantity}x ${i.garmentType}`)
                       .join(', ');
+                    const refDate =
+                      order.readyDate || order.promisedDate || order.receivedDate;
+                    const daysUncollected =
+                      order.workflowStatus === 'Ready for Collection'
+                        ? calculateNights(refDate, TODAY_STR)
+                        : 0;
+                    const isOverdue = daysUncollected > 3;
 
                     return (
                       <tr
@@ -372,7 +271,14 @@ export const LaundryStoragePage: React.FC = () => {
                           {formatDate(order.promisedDate)}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <StatusBadge status={order.workflowStatus} />
+                          <div className="inline-flex items-center gap-1.5">
+                            <StatusBadge status={order.workflowStatus} />
+                            {isOverdue && (
+                              <span className="px-2 py-0.5 rounded-[6px] bg-[#FCECE9] text-[#B93829] text-[11px] font-medium tabular-nums">
+                                Uncollected {daysUncollected}d
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td
                           className="py-3.5 px-5 text-right whitespace-nowrap"
@@ -404,7 +310,7 @@ export const LaundryStoragePage: React.FC = () => {
         )}
       </div>
 
-      {/* Order Detail Drawer (Read-only Collection Status, no Mark Collected button) */}
+      {/* Order Detail Drawer */}
       <Drawer
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
@@ -484,13 +390,13 @@ export const LaundryStoragePage: React.FC = () => {
                         {item.serviceType}
                       </p>
                     </div>
-                    <span className="font-semibold text-[#1E1E1E] tabular-nums">
+                    <span className="font-medium text-[#1E1E1E] tabular-nums">
                       {formatCurrency(item.subtotal, settings.currencySymbol)}
                     </span>
                   </div>
                 ))}
               </div>
-              <div className="bg-[#FAF9F6] px-4 py-3 border-t border-[#EFEFEA] flex justify-between text-[13.5px] font-semibold text-[#1E1E1E] tabular-nums">
+              <div className="bg-[#FAF9F6] px-4 py-3 border-t border-[#EFEFEA] flex justify-between text-[13.5px] font-medium text-[#1E1E1E] tabular-nums">
                 <span>Total Amount</span>
                 <span>
                   {formatCurrency(

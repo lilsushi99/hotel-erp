@@ -18,14 +18,17 @@ import { OverviewPage } from './pages/overview/OverviewPage';
 import { BookingsPage } from './pages/hotel-operations/BookingsPage';
 import { RoomsPage } from './pages/hotel-operations/RoomsPage';
 import { GuestCrmPage } from './pages/guest-management/GuestCrmPage';
+import { HotelOperationsReportsPage } from './pages/hotel-operations/HotelOperationsReportsPage';
 
 // 3. Sales & Services
 import { BarPosPage } from './pages/sales-services/BarPosPage';
 import { KitchenRestaurantPage } from './pages/sales-services/KitchenRestaurantPage';
+import { SalesReportsPage } from './pages/sales-services/SalesReportsPage';
 
 // 4. Laundry
 import { LaundryLoggerPage } from './pages/laundry/LaundryLoggerPage';
 import { LaundryStoragePage } from './pages/laundry/LaundryStoragePage';
+import { LaundryCrmPage } from './pages/laundry/LaundryCrmPage';
 
 // 5. Inventory
 import { BeveragesPage } from './pages/inventory/BeveragesPage';
@@ -124,6 +127,14 @@ export function App() {
                 </ModuleRouteGuard>
               }
             />
+            <Route
+              path="/hotel-operations/reports"
+              element={
+                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS">
+                  <HotelOperationsReportsPage />
+                </ModuleRouteGuard>
+              }
+            />
 
             {/* Sales & Services */}
             <Route
@@ -142,6 +153,14 @@ export function App() {
                 </ModuleRouteGuard>
               }
             />
+            <Route
+              path="/sales/reports"
+              element={
+                <ModuleRouteGuard moduleId="MOD-BAR-POS">
+                  <SalesReportsPage />
+                </ModuleRouteGuard>
+              }
+            />
 
             {/* Laundry */}
             <Route
@@ -157,6 +176,14 @@ export function App() {
               element={
                 <ModuleRouteGuard moduleId="MOD-LAUNDRY">
                   <LaundryStoragePage />
+                </ModuleRouteGuard>
+              }
+            />
+            <Route
+              path="/laundry/crm"
+              element={
+                <ModuleRouteGuard moduleId="MOD-LAUNDRY">
+                  <LaundryCrmPage />
                 </ModuleRouteGuard>
               }
             />

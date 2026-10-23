@@ -261,7 +261,6 @@ export const GuestCrmPage: React.FC = () => {
         title="Customer CRM"
         actions={
           <DateRangeControl
-            label="Date Range"
             fromDate={dateStart}
             toDate={dateEnd}
             onChange={(from, to) => {
@@ -327,17 +326,6 @@ export const GuestCrmPage: React.FC = () => {
               { value: 'ALL', label: 'All Room Types' },
               ...roomTypes.map((rt) => ({ value: rt.id, label: rt.name })),
             ]}
-          />
-
-          <DateRangeControl
-            label="Date Range"
-            fromDate={dateStart}
-            toDate={dateEnd}
-            onChange={(from, to) => {
-              setDateStart(from);
-              setDateEnd(to);
-              setPage(1);
-            }}
           />
         </div>
 

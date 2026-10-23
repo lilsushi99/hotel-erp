@@ -147,18 +147,23 @@ export const BookingsPage: React.FC = () => {
     [rooms, selectedBranchId]
   );
 
-  // KPI metrics (only title, icon, and main figure)
+  // KPI metrics (only title, icon, and main figure) filtered by the booking date filter
   const kpis = useMemo(() => {
-    const active = branchBookings.filter(
+    const periodBookings = branchBookings.filter((b) => {
+      if (dateFromFilter && b.checkOutDate < dateFromFilter) return false;
+      if (dateToFilter && b.checkInDate > dateToFilter) return false;
+      return true;
+    });
+    const active = periodBookings.filter(
       (b) => b.bookingStatus === 'Confirmed' || b.bookingStatus === 'Checked In'
     ).length;
-    const total = branchBookings.length;
-    const revenue = branchBookings
+    const total = periodBookings.length;
+    const revenue = periodBookings
       .filter((b) => b.bookingStatus !== 'Cancelled')
       .reduce((s, b) => s + b.totalAmount, 0);
     const availableRooms = branchRooms.filter((r) => r.status === 'Available').length;
     return { active, total, revenue, availableRooms };
-  }, [branchBookings, branchRooms]);
+  }, [branchBookings, branchRooms, dateFromFilter, dateToFilter]);
 
   // Filtered & sorted bookings
   const filteredBookings = useMemo(() => {
@@ -601,44 +606,38 @@ export const BookingsPage: React.FC = () => {
       <PageHeader
         title="Bookings & Reservations"
         actions={
-          <>
-            {/* View Switcher: Table View vs Timeline View */}
-            <div className="inline-flex items-center bg-[#EAEAE4] p-1 rounded-[10px]">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
-                  viewMode === 'table'
-                    ? 'bg-white text-[#1E1E1E] shadow-xs'
-                    : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-                Table View
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('timeline')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
-                  viewMode === 'timeline'
-                    ? 'bg-white text-[#1E1E1E] shadow-xs'
-                    : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
-                }`}
-              >
-                <GanttChart className="w-3.5 h-3.5" />
-                Timeline View
-              </button>
-            </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Compact View Dropdown: Table View vs Timeline View */}
+            <Dropdown
+              value={viewMode}
+              onChange={(v) => setViewMode(v as 'table' | 'timeline')}
+              size="sm"
+              className="w-36"
+              options={[
+                { value: 'table', label: 'Table View' },
+                { value: 'timeline', label: 'Timeline View' },
+              ]}
+            />
 
             <button
               type="button"
               onClick={() => openCreateModal()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#7463A6] hover:bg-[#635394] text-white text-[13px] font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#7463A6] hover:bg-[#635394] text-white text-[13px] font-medium transition-colors cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               New Booking
             </button>
-          </>
+
+            <DateRangeControl
+              fromDate={dateFromFilter}
+              toDate={dateToFilter}
+              onChange={(from, to) => {
+                setDateFromFilter(from);
+                setDateToFilter(to);
+                setPage(1);
+              }}
+            />
+          </div>
         }
       />
 
@@ -733,17 +732,6 @@ export const BookingsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <DateRangeControl
-            label="Date Range"
-            fromDate={dateFromFilter}
-            toDate={dateToFilter}
-            onChange={(from, to) => {
-              setDateFromFilter(from);
-              setDateToFilter(to);
-              setPage(1);
-            }}
-          />
-
           {(statusFilter !== 'ALL' ||
             paymentFilter !== 'ALL' ||
             roomTypeFilter !== 'ALL' ||
@@ -1438,8 +1426,8 @@ export const BookingsPage: React.FC = () => {
             </div>
           )}
 
-          {/* 2. Full Name, 3. Phone Number, 4. Email */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Row 2: Full Name | Phone Number | Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
               <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
                 Full Name <span className="text-[#B93829]">*</span>
@@ -1479,10 +1467,9 @@ export const BookingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 5. Room Type, 6. Room Selection, 7. Room Rate, 8. Number of Nights */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            {/* 5. Room Type */}
-            <div className="sm:col-span-3">
+          {/* Row 3: Room Type | Room Selection | Room Rate */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div>
               <Dropdown
                 label="Room Type"
                 required
@@ -1495,8 +1482,7 @@ export const BookingsPage: React.FC = () => {
               />
             </div>
 
-            {/* 6. Room Selection */}
-            <div ref={roomSelectorRef} className="sm:col-span-4 relative">
+            <div ref={roomSelectorRef} className="relative">
               <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
                 Room Selection <span className="text-[#B93829]">*</span>
               </label>
@@ -1604,8 +1590,7 @@ export const BookingsPage: React.FC = () => {
               )}
             </div>
 
-            {/* 7. Room Rate */}
-            <div className="sm:col-span-3">
+            <div>
               <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
                 Room Rate
               </label>
@@ -1617,9 +1602,11 @@ export const BookingsPage: React.FC = () => {
                 className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] tabular-nums focus:outline-none focus:border-[#7463A6]"
               />
             </div>
+          </div>
 
-            {/* 8. Number of Nights */}
-            <div className="sm:col-span-2">
+          {/* Row 4: Number of Nights | Check-in Date | Check-in Time */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div>
               <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
                 Number of Nights
               </label>
@@ -1628,7 +1615,7 @@ export const BookingsPage: React.FC = () => {
                   type="button"
                   onClick={() => handleDurationChange(computedNights - 1)}
                   disabled={computedNights <= 1}
-                  className="px-2 py-2 text-[#4A4A46] hover:bg-[#F6F6F4] disabled:opacity-35 transition-colors cursor-pointer"
+                  className="px-2.5 py-2 text-[#4A4A46] hover:bg-[#F6F6F4] disabled:opacity-35 transition-colors cursor-pointer"
                   aria-label="Decrease nights"
                 >
                   <Minus className="w-3.5 h-3.5" />
@@ -1644,50 +1631,54 @@ export const BookingsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleDurationChange(computedNights + 1)}
-                  className="px-2 py-2 text-[#4A4A46] hover:bg-[#F6F6F4] transition-colors cursor-pointer"
+                  className="px-2.5 py-2 text-[#4A4A46] hover:bg-[#F6F6F4] transition-colors cursor-pointer"
                   aria-label="Increase nights"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* 9. Check-in Date, 10. Check-in Time, 11. Check-out Date, 12. Check-out Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <CustomSingleDatePicker
               label="Check-in Date"
               required
               value={checkInDate}
               onChange={handleCheckInDateChange}
             />
+
             <CustomTimePicker
               label="Check-in Time"
               value={checkInTime}
               onChange={setCheckInTime}
               optional={true}
               placeholder="Select time"
+              align="right"
             />
+          </div>
+
+          {/* Row 5: Check-out Date | Check-out Time | Spacer */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <CustomSingleDatePicker
               label="Check-out Date"
               required
               value={checkOutDate}
               minDate={addDays(checkInDate, 1)}
               onChange={handleCheckOutDateChange}
-              align="right"
             />
+
             <CustomTimePicker
               label="Check-out Time"
               value={checkOutTime}
               onChange={setCheckOutTime}
               optional={true}
               placeholder="Select time"
-              align="right"
             />
+
+            <div className="hidden sm:block" />
           </div>
 
-          {/* 13. Payment Method, 14. Payment Status, 15. Booking Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Row 6: Payment Method | Payment Status | Booking Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <Dropdown
               label="Payment Method"
               value={paymentMethod}

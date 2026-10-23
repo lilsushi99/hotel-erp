@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   BedDouble,
   CheckCircle2,
-  Brush,
+  SprayCan,
   Wrench,
   Plus,
   Users,
@@ -237,7 +237,7 @@ export const RoomsPage: React.FC = () => {
       case 'Occupied':
         return <BedDouble className="w-5 h-5 text-[#7463A6]" />;
       case 'Cleaning':
-        return <Brush className="w-5 h-5 text-[#D97706]" />;
+        return <SprayCan className="w-5 h-5 text-[#D97706]" />;
       case 'Maintenance':
         return <Wrench className="w-5 h-5 text-[#DC2626]" />;
     }

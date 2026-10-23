@@ -416,7 +416,6 @@ export const LaundryLoggerPage: React.FC = () => {
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
             <DateRangeControl
-              label="Date Range"
               fromDate={dateRange.fromDate}
               toDate={dateRange.toDate}
               onChange={(fromDate, toDate) => {
@@ -796,8 +795,25 @@ export const LaundryLoggerPage: React.FC = () => {
                   key={idx}
                   className="p-3.5 rounded-[12px] bg-[#FAF9F6] border border-[#EFEFEA] space-y-3"
                 >
+                  {lines.length > 1 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-[#6E6E6A]">
+                        Item #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeLine(idx)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-[7px] text-[11.5px] text-[#8E8E88] hover:text-[#B93829] hover:bg-[#FCECE9] transition-colors cursor-pointer"
+                        title="Remove garment line"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Remove
+                      </button>
+                    </div>
+                  )}
+
                   {/* Row 1: Garment Name and Service Type */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
                       <label className="block text-[11.5px] font-normal text-[#4A4A46] mb-1">
                         Garment Name
@@ -831,9 +847,9 @@ export const LaundryLoggerPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Row 2: Quantity and Total Price for that garment line */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                    <div className="sm:col-span-5">
+                  {/* Row 2: Quantity and Price — identical 2-column grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
                       <label className="block text-[11.5px] font-normal text-[#4A4A46] mb-1">
                         Quantity
                       </label>
@@ -849,9 +865,9 @@ export const LaundryLoggerPage: React.FC = () => {
                         className="w-full px-3 py-2 bg-white border border-[#E2E2DC] rounded-[10px] text-[13px] tabular-nums focus:outline-none focus:border-[#7463A6]"
                       />
                     </div>
-                    <div className="sm:col-span-6">
+                    <div>
                       <label className="block text-[11.5px] font-normal text-[#4A4A46] mb-1">
-                        Price ({settings.currencySymbol}) — Total for this garment line
+                        Price ({settings.currencySymbol})
                       </label>
                       <input
                         type="number"
@@ -865,18 +881,6 @@ export const LaundryLoggerPage: React.FC = () => {
                         }
                         className="w-full px-3 py-2 bg-white border border-[#E2E2DC] rounded-[10px] text-[13px] tabular-nums focus:outline-none focus:border-[#7463A6]"
                       />
-                    </div>
-                    <div className="sm:col-span-1 flex justify-end">
-                      {lines.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeLine(idx)}
-                          className="p-2 rounded-[9px] text-[#8E8E88] hover:text-[#B93829] hover:bg-[#FCECE9] transition-colors cursor-pointer"
-                          title="Remove garment line"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>

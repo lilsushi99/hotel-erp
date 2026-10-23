@@ -30,9 +30,11 @@ import {
   User,
   ShieldCheck,
   ChevronRight,
+  FileSpreadsheet,
+  BarChart3,
 } from 'lucide-react';
 import { useHotel } from '../../context/HotelContext';
-import { formatCurrency, getInventoryHealthStatus } from '../../utils/formatters';
+import { formatCurrency, getInventoryHealthStatus, TODAY_STR } from '../../utils/formatters';
 
 interface NavGroup {
   label: string;
@@ -43,6 +45,137 @@ interface NavGroup {
     moduleId?: string;
   }[];
 }
+
+interface GlobalSearchResult {
+  id: string;
+  group: string;
+  title: string;
+  subtitle: string;
+  path: string;
+  badge?: string;
+}
+
+const SEARCHABLE_DESTINATIONS: Array<{
+  title: string;
+  subtitle: string;
+  path: string;
+  keywords: string[];
+}> = [
+  {
+    title: 'Overview Dashboard',
+    subtitle: 'Command Center · KPIs, Revenue Trend & Operational Alerts',
+    path: '/overview',
+    keywords: ['overview', 'dashboard', 'home', 'command center'],
+  },
+  {
+    title: 'Bookings & Reservations',
+    subtitle: 'Hotel Operations · Bookings, Check-in & Timeline View',
+    path: '/bookings',
+    keywords: ['bookings', 'reservations', 'check-in', 'check-out', 'timeline'],
+  },
+  {
+    title: 'Rooms & Pricing',
+    subtitle: 'Hotel Operations · Room Inventory, Statuses & Pricing',
+    path: '/rooms',
+    keywords: ['rooms', 'rooms & pricing', 'pricing', 'categories', 'cleaning', 'maintenance'],
+  },
+  {
+    title: 'Customer Management (CRM)',
+    subtitle: 'Hotel Operations · Customer Profiles, Spend & Stay History',
+    path: '/guests',
+    keywords: ['customer management', 'customer crm', 'guests', 'crm', 'customers'],
+  },
+  {
+    title: 'Hotel Operations Reports',
+    subtitle: 'Hotel Operations · Room Type Performance & Booking Summary Report',
+    path: '/hotel-operations/reports',
+    keywords: ['reports', 'hotel operations reports', 'booking report', 'room type report'],
+  },
+  {
+    title: 'Bar & POS',
+    subtitle: 'Sales & Services · Beverage POS Terminal & Bar Sales Ledger',
+    path: '/sales/bar-pos',
+    keywords: ['bar', 'bar & pos', 'pos', 'drinks', 'bar sales ledger'],
+  },
+  {
+    title: 'Kitchen & Restaurant',
+    subtitle: 'Sales & Services · Restaurant Menu POS & Kitchen Order Ledger',
+    path: '/sales/kitchen-restaurant',
+    keywords: ['kitchen', 'kitchen & restaurant', 'restaurant', 'dining', 'menu'],
+  },
+  {
+    title: 'Sales & Services Reports',
+    subtitle: 'Sales & Services · Combined Bar & Restaurant Sales Summary Report',
+    path: '/sales/reports',
+    keywords: ['reports', 'sales reports', 'sales & services reports', 'pos report', 'restaurant report'],
+  },
+  {
+    title: 'Laundry Logger',
+    subtitle: 'Laundry · Log Garment Orders & Workflow Progress',
+    path: '/laundry/logger',
+    keywords: ['laundry', 'laundry logger', 'garments', 'washing', 'ironing'],
+  },
+  {
+    title: 'Laundry Storage',
+    subtitle: 'Laundry · Awaiting Collection & Collected Garments',
+    path: '/laundry/storage',
+    keywords: ['storage', 'laundry storage', 'awaiting collection', 'collected'],
+  },
+  {
+    title: 'Laundry CRM',
+    subtitle: 'Laundry · Laundry Customer Profiles & Order History',
+    path: '/laundry/crm',
+    keywords: ['laundry crm', 'laundry customers', 'crm'],
+  },
+  {
+    title: 'Beverages',
+    subtitle: 'Inventory · Beverage Stock & Pricing',
+    path: '/inventory/beverages',
+    keywords: ['beverages', 'beverage inventory', 'drinks', 'wine'],
+  },
+  {
+    title: 'Food Inventory',
+    subtitle: 'Inventory · Kitchen Food Stock & Portions',
+    path: '/inventory/food',
+    keywords: ['food inventory', 'food', 'kitchen stock', 'dishes'],
+  },
+  {
+    title: 'Store Keeper',
+    subtitle: 'Inventory · Departmental Supplies & Stock Items',
+    path: '/inventory/supplies',
+    keywords: ['store keeper', 'stock keeper', 'supplies', 'housekeeping', 'store'],
+  },
+  {
+    title: 'Expenses',
+    subtitle: 'Finance & Intelligence · Operational Expense Ledger & Categories',
+    path: '/finance/expenses',
+    keywords: ['expenses', 'expenditure', 'costs'],
+  },
+  {
+    title: 'Financial Reports',
+    subtitle: 'Finance & Intelligence · Revenue vs Expenses & Departmental P&L',
+    path: '/finance/reports',
+    keywords: ['financial reports', 'finance', 'accounting', 'profit'],
+  },
+  {
+    title: 'Staff & Permissions',
+    subtitle: 'Administration · Staff Directory, Roles & Access Control',
+    path: '/admin/staff',
+    keywords: ['staff', 'staff & permissions', 'permissions', 'roles', 'employees'],
+  },
+  {
+    title: 'Hotel Settings',
+    subtitle: 'Administration · Hotel Profile, Currency & Operational Rules',
+    path: '/admin/settings',
+    keywords: ['hotel settings', 'settings', 'configuration', 'preferences'],
+  },
+  {
+    title: 'Operational Modules',
+    subtitle: 'Administration · Optional System Modules & Extensions',
+    path: '/admin/optional-modules',
+    keywords: ['operational modules', 'modules', 'extensions'],
+  },
+];
 
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -70,6 +203,12 @@ const NAV_GROUPS: NavGroup[] = [
         icon: Users,
         moduleId: 'MOD-HOTEL-OPS',
       },
+      {
+        label: 'Reports',
+        path: '/hotel-operations/reports',
+        icon: FileSpreadsheet,
+        moduleId: 'MOD-HOTEL-OPS',
+      },
     ],
   },
   {
@@ -87,6 +226,11 @@ const NAV_GROUPS: NavGroup[] = [
         icon: UtensilsCrossed,
         moduleId: 'MOD-KITCHEN-RES',
       },
+      {
+        label: 'Reports',
+        path: '/sales/reports',
+        icon: BarChart3,
+      },
     ],
   },
   {
@@ -102,6 +246,12 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Storage',
         path: '/laundry/storage',
         icon: Archive,
+        moduleId: 'MOD-LAUNDRY',
+      },
+      {
+        label: 'Laundry CRM',
+        path: '/laundry/crm',
+        icon: Users,
         moduleId: 'MOD-LAUNDRY',
       },
     ],
@@ -121,7 +271,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: ShoppingBasket,
         moduleId: 'MOD-KITCHEN-RES',
       },
-      { label: 'Stock Keeper', path: '/inventory/supplies', icon: Boxes },
+      { label: 'Store Keeper', path: '/inventory/supplies', icon: Boxes },
     ],
   },
   {
@@ -173,17 +323,20 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     laundryOrders,
     guests,
     rooms,
+    roomTypes,
   } = useHotel();
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(0);
   const [showAlertsPopover, setShowAlertsPopover] = useState(false);
   const [showFullAlertsDrawer, setShowFullAlertsDrawer] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const alertsRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -205,6 +358,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
       if (alertsRef.current && !alertsRef.current.contains(e.target as Node)) {
         setShowAlertsPopover(false);
       }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSearchDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
@@ -223,7 +379,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     })).filter((group) => group.items.length > 0);
   }, [optionalModules]);
 
-  // Consolidated live operational alerts list (including unpaid bookings, unpaid POS, unpaid Restaurant, low stock, laundry, expenses)
+  // Consolidated live operational alerts list (including unpaid bookings, unpaid POS, unpaid Restaurant, low stock, >3-day uncollected laundry, expenses)
   const allAlertItems = useMemo<OperationalAlertItem[]>(() => {
     const list: OperationalAlertItem[] = [];
 
@@ -335,7 +491,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
           title: `Low Supply: ${s.name}`,
           detail: `${s.availableQuantity} ${s.unit} remaining in ${s.category}`,
           severity: 'Medium',
-          category: 'Stock Keeper',
+          category: 'Store Keeper',
           path: '/inventory/supplies',
         });
       });
@@ -348,16 +504,33 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
             (o.workflowStatus === 'Ready for Collection' || o.paymentStatus !== 'Paid')
         )
         .forEach((o) => {
+          const refDate = o.readyDate || o.promisedDate;
+          const d1 = new Date(refDate + 'T00:00:00');
+          const d2 = new Date(TODAY_STR + 'T00:00:00');
+          const daysWaiting = Math.round(
+            (d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          const isOverdue3Days =
+            o.workflowStatus === 'Ready for Collection' && daysWaiting > 3;
+
           list.push({
             id: `ALT-LND-${o.id}`,
-            title:
-              o.workflowStatus === 'Ready for Collection'
-                ? `Laundry Awaiting Collection (${o.id})`
-                : `Unpaid Laundry Order (${o.id})`,
-            detail: `${o.customerName} · ${o.customerAddress || (o.roomNumber ? `Room ${o.roomNumber}` : 'Walk-in')}`,
-            severity: o.paymentStatus !== 'Paid' ? 'Medium' : 'Low',
+            title: isOverdue3Days
+              ? `Uncollected >3 Days (${o.id}) — ${daysWaiting}d in Storage`
+              : o.workflowStatus === 'Ready for Collection'
+              ? `Laundry Awaiting Collection (${o.id})`
+              : `Unpaid Laundry Order (${o.id})`,
+            detail: `${o.customerName} · ${o.customerAddress || (o.roomNumber ? `Room ${o.roomNumber}` : 'Walk-in')} · Ready since ${refDate}`,
+            severity: isOverdue3Days
+              ? 'High'
+              : o.paymentStatus !== 'Paid'
+              ? 'Medium'
+              : 'Low',
             category: 'Laundry',
-            path: o.workflowStatus === 'Ready for Collection' ? '/laundry/storage' : '/laundry/logger',
+            path:
+              o.workflowStatus === 'Ready for Collection'
+                ? '/laundry/storage'
+                : '/laundry/logger',
           });
         });
     }
@@ -396,31 +569,236 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
 
   const totalAlerts = allAlertItems.length;
 
-  // Quick search results
+  // Cross-application Global Search results
   const searchQuery = globalSearch.trim().toLowerCase();
-  const matchedBookings = searchQuery
-    ? bookings
-        .filter(
-          (b) =>
-            b.id.toLowerCase().includes(searchQuery) ||
-            b.guestName.toLowerCase().includes(searchQuery)
-        )
-        .slice(0, 3)
-    : [];
-  const matchedGuests = searchQuery
-    ? guests
-        .filter(
-          (g) =>
-            g.name.toLowerCase().includes(searchQuery) ||
-            g.phone.toLowerCase().includes(searchQuery)
-        )
-        .slice(0, 3)
-    : [];
-  const matchedRooms = searchQuery
-    ? rooms
-        .filter((r) => r.roomNumber.toLowerCase().includes(searchQuery))
-        .slice(0, 3)
-    : [];
+
+  const searchResults = useMemo<GlobalSearchResult[]>(() => {
+    if (!searchQuery) return [];
+    const results: GlobalSearchResult[] = [];
+
+    // 1. Navigation & Module Destinations
+    SEARCHABLE_DESTINATIONS.forEach((dest) => {
+      if (
+        dest.title.toLowerCase().includes(searchQuery) ||
+        dest.subtitle.toLowerCase().includes(searchQuery) ||
+        dest.keywords.some((k) => k.includes(searchQuery) || searchQuery.includes(k))
+      ) {
+        results.push({
+          id: `nav-${dest.path}`,
+          group: 'Navigation & Modules',
+          title: dest.title,
+          subtitle: dest.subtitle,
+          path: dest.path,
+          badge: 'Page',
+        });
+      }
+    });
+
+    // 2. Bookings
+    bookings
+      .filter(
+        (b) =>
+          b.id.toLowerCase().includes(searchQuery) ||
+          b.guestName.toLowerCase().includes(searchQuery) ||
+          b.roomNumber.toLowerCase().includes(searchQuery) ||
+          `room ${b.roomNumber.toLowerCase()}`.includes(searchQuery)
+      )
+      .slice(0, 4)
+      .forEach((b) => {
+        results.push({
+          id: `bk-${b.id}`,
+          group: 'Bookings',
+          title: `${b.guestName} (${b.id})`,
+          subtitle: `Room ${b.roomNumber} · ${b.checkInDate} to ${b.checkOutDate}`,
+          path: '/bookings',
+          badge: b.bookingStatus,
+        });
+      });
+
+    // 3. Customer Profiles
+    guests
+      .filter(
+        (g) =>
+          g.name.toLowerCase().includes(searchQuery) ||
+          g.phone.toLowerCase().includes(searchQuery) ||
+          g.email.toLowerCase().includes(searchQuery) ||
+          g.id.toLowerCase().includes(searchQuery)
+      )
+      .slice(0, 4)
+      .forEach((g) => {
+        results.push({
+          id: `gst-${g.id}`,
+          group: 'Customer Management',
+          title: g.name,
+          subtitle: `${g.id} · ${g.phone}${g.email ? ` · ${g.email}` : ''}`,
+          path: '/guests',
+          badge: g.status,
+        });
+      });
+
+    // 4. Rooms
+    rooms
+      .filter((r) => {
+        const rt = roomTypes.find((t) => t.id === r.roomTypeId);
+        return (
+          r.roomNumber.toLowerCase().includes(searchQuery) ||
+          `room ${r.roomNumber.toLowerCase()}`.includes(searchQuery) ||
+          r.floor.toLowerCase().includes(searchQuery) ||
+          (rt && rt.name.toLowerCase().includes(searchQuery))
+        );
+      })
+      .slice(0, 4)
+      .forEach((r) => {
+        const rt = roomTypes.find((t) => t.id === r.roomTypeId);
+        results.push({
+          id: `rm-${r.id}`,
+          group: 'Rooms & Pricing',
+          title: `Room ${r.roomNumber} — ${rt?.name || 'Suite'}`,
+          subtitle: `${r.floor} · ${formatCurrency(r.rate, settings.currencySymbol)} / night`,
+          path: '/rooms',
+          badge: r.status,
+        });
+      });
+
+    // 5. Beverages
+    beverages
+      .filter(
+        (b) =>
+          b.name.toLowerCase().includes(searchQuery) ||
+          b.sku.toLowerCase().includes(searchQuery)
+      )
+      .slice(0, 4)
+      .forEach((b) => {
+        results.push({
+          id: `bev-${b.id}`,
+          group: 'Beverages & Food Inventory',
+          title: b.name,
+          subtitle: `${b.sku} · ${b.availableQuantity} ${b.unit}s in stock`,
+          path: '/inventory/beverages',
+          badge: formatCurrency(b.sellingPrice, settings.currencySymbol),
+        });
+      });
+
+    // 6. Food Inventory
+    foodIngredients
+      .filter(
+        (f) =>
+          f.name.toLowerCase().includes(searchQuery) ||
+          f.sku.toLowerCase().includes(searchQuery)
+      )
+      .slice(0, 4)
+      .forEach((f) => {
+        results.push({
+          id: `food-${f.id}`,
+          group: 'Beverages & Food Inventory',
+          title: f.name,
+          subtitle: `${f.sku} · ${f.availableQuantity} ${f.unit}s in stock`,
+          path: '/inventory/food',
+          badge: formatCurrency(f.sellingPrice, settings.currencySymbol),
+        });
+      });
+
+    // 7. Store Keeper Items
+    supplies
+      .filter(
+        (s) =>
+          s.name.toLowerCase().includes(searchQuery) ||
+          s.sku.toLowerCase().includes(searchQuery) ||
+          s.category.toLowerCase().includes(searchQuery)
+      )
+      .slice(0, 4)
+      .forEach((s) => {
+        results.push({
+          id: `sup-${s.id}`,
+          group: 'Store Keeper',
+          title: s.name,
+          subtitle: `${s.sku} · ${s.category} · ${s.availableQuantity} ${s.unit}`,
+          path: '/inventory/supplies',
+          badge: s.category,
+        });
+      });
+
+    // 8. Laundry Orders & Garments
+    laundryOrders
+      .filter(
+        (o) =>
+          o.id.toLowerCase().includes(searchQuery) ||
+          o.customerName.toLowerCase().includes(searchQuery) ||
+          o.garments.some((g) => g.garmentType.toLowerCase().includes(searchQuery))
+      )
+      .slice(0, 4)
+      .forEach((o) => {
+        results.push({
+          id: `lnd-${o.id}`,
+          group: 'Laundry & POS Records',
+          title: `${o.id} — ${o.customerName}`,
+          subtitle: o.garments.map((g) => `${g.quantity}x ${g.garmentType}`).join(', '),
+          path:
+            o.workflowStatus === 'Ready for Collection' ||
+            o.workflowStatus === 'Collected'
+              ? '/laundry/storage'
+              : '/laundry/logger',
+          badge: o.workflowStatus,
+        });
+      });
+
+    // 9. POS & Kitchen Transactions
+    posTransactions
+      .filter(
+        (tx) =>
+          tx.id.toLowerCase().includes(searchQuery) ||
+          tx.guestName.toLowerCase().includes(searchQuery) ||
+          tx.items.some((i) => i.name.toLowerCase().includes(searchQuery))
+      )
+      .slice(0, 4)
+      .forEach((tx) => {
+        results.push({
+          id: `tx-${tx.id}`,
+          group: 'Laundry & POS Records',
+          title: `${tx.id} — ${tx.guestName}`,
+          subtitle: `${tx.department} · ${tx.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')}`,
+          path:
+            tx.department === 'Bar & POS'
+              ? '/sales/bar-pos'
+              : '/sales/kitchen-restaurant',
+          badge: formatCurrency(tx.totalAmount, settings.currencySymbol),
+        });
+      });
+
+    return results;
+  }, [
+    searchQuery,
+    bookings,
+    guests,
+    rooms,
+    roomTypes,
+    beverages,
+    foodIngredients,
+    supplies,
+    laundryOrders,
+    posTransactions,
+    settings.currencySymbol,
+  ]);
+
+  const groupedSearchResults = useMemo(() => {
+    const map = new Map<string, GlobalSearchResult[]>();
+    searchResults.forEach((item) => {
+      const arr = map.get(item.group) || [];
+      arr.push(item);
+      map.set(item.group, arr);
+    });
+    return Array.from(map.entries());
+  }, [searchResults]);
+
+  useEffect(() => {
+    setActiveSearchIndex(0);
+  }, [searchQuery]);
+
+  const handleSelectSearchItem = (item: GlobalSearchResult) => {
+    navigate(item.path);
+    setGlobalSearch('');
+    setShowSearchDropdown(false);
+  };
 
   const isRibCage = settings.sidebarStyle === 'ribcage';
 
@@ -633,103 +1011,110 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
             </button>
 
             {/* Global Search */}
-            <div className="relative flex-1 max-w-md">
+            <div ref={searchRef} className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={globalSearch}
                 onFocus={() => setShowSearchDropdown(true)}
-                onBlur={() =>
-                  setTimeout(() => setShowSearchDropdown(false), 180)
-                }
-                onChange={(e) => setGlobalSearch(e.target.value)}
-                placeholder="Quick search bookings, guests, rooms (e.g. BKG-2041, 301)..."
-                className="w-full pl-9 pr-4 py-1.5 bg-[#F5F5F5] border border-transparent focus:bg-white focus:border-[#D1D5DB] rounded-xl text-[13px] text-[#111111] placeholder-[#9CA3AF] focus:outline-none transition-all"
+                onChange={(e) => {
+                  setGlobalSearch(e.target.value);
+                  setShowSearchDropdown(true);
+                }}
+                onKeyDown={(e) => {
+                  if (!showSearchDropdown || searchResults.length === 0) {
+                    if (e.key === 'Escape') setShowSearchDropdown(false);
+                    return;
+                  }
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setActiveSearchIndex((prev) =>
+                      prev + 1 >= searchResults.length ? 0 : prev + 1
+                    );
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setActiveSearchIndex((prev) =>
+                      prev - 1 < 0 ? searchResults.length - 1 : prev - 1
+                    );
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const chosen = searchResults[activeSearchIndex];
+                    if (chosen) handleSelectSearchItem(chosen);
+                  } else if (e.key === 'Escape') {
+                    setShowSearchDropdown(false);
+                  }
+                }}
+                placeholder="Search pages, bookings, guests, rooms, inventory..."
+                className="w-full pl-9 pr-8 py-1.5 bg-[#F5F5F5] border border-transparent focus:bg-white focus:border-[#7463A6] rounded-xl text-[13px] text-[#111111] placeholder-[#9CA3AF] focus:outline-none transition-all"
               />
+              {globalSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGlobalSearch('');
+                    setShowSearchDropdown(false);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-[#8E8E88] hover:text-[#1E1E1E] cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
 
               {showSearchDropdown && searchQuery.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-3 z-50 space-y-3">
-                  {matchedBookings.length === 0 &&
-                  matchedGuests.length === 0 &&
-                  matchedRooms.length === 0 ? (
-                    <p className="text-[12px] text-[#6B7280] py-2 text-center">
-                      No matching bookings, guests, or rooms found.
-                    </p>
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-[14px] shadow-[0_14px_36px_rgba(0,0,0,0.12)] border border-[#E6E6E0] p-2.5 z-50 max-h-[420px] overflow-y-auto space-y-3">
+                  {groupedSearchResults.length === 0 ? (
+                    <div className="py-6 px-3 text-center">
+                      <p className="text-[13px] font-medium text-[#1E1E1E]">
+                        No matching pages or records found
+                      </p>
+                      <p className="text-[11.5px] text-[#6E6E6A] mt-0.5">
+                        Try searching by module name, guest name, room number, SKU, or ID.
+                      </p>
+                    </div>
                   ) : (
-                    <>
-                      {matchedBookings.length > 0 && (
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF] px-2 mb-1">
-                            Bookings
-                          </p>
-                          {matchedBookings.map((b) => (
-                            <button
-                              key={b.id}
-                              onMouseDown={() => {
-                                navigate('/bookings');
-                                setGlobalSearch('');
-                              }}
-                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#F3F4F6] flex items-center justify-between text-[12px]"
-                            >
-                              <span className="font-medium text-[#111111]">
-                                {b.guestName} ({b.id})
-                              </span>
-                              <span className="text-[11px] text-[#6B7280]">
-                                {b.bookingStatus}
-                              </span>
-                            </button>
-                          ))}
+                    groupedSearchResults.map(([groupName, groupItems]) => (
+                      <div key={groupName}>
+                        <p className="text-[10.5px] font-medium uppercase tracking-wider text-[#8E8E88] px-2.5 mb-1">
+                          {groupName}
+                        </p>
+                        <div className="space-y-0.5">
+                          {groupItems.map((item) => {
+                            const flatIdx = searchResults.findIndex(
+                              (r) => r.id === item.id
+                            );
+                            const isHighlighted = flatIdx === activeSearchIndex;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onMouseEnter={() => setActiveSearchIndex(flatIdx)}
+                                onClick={() => handleSelectSearchItem(item)}
+                                className={`w-full text-left px-2.5 py-2 rounded-[9px] flex items-center justify-between gap-2.5 transition-colors cursor-pointer ${
+                                  isHighlighted
+                                    ? 'bg-[#F1EEF8] text-[#7463A6]'
+                                    : 'hover:bg-[#F6F6F4] text-[#1E1E1E]'
+                                }`}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[12.5px] font-medium truncate">
+                                    {item.title}
+                                  </p>
+                                  <p className="text-[11px] text-[#6E6E6A] truncate">
+                                    {item.subtitle}
+                                  </p>
+                                </div>
+                                {item.badge && (
+                                  <span className="text-[10.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#F4F4F0] text-[#4A4A46] shrink-0 tabular-nums">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
-                      )}
-                      {matchedGuests.length > 0 && (
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF] px-2 mb-1">
-                            Guests
-                          </p>
-                          {matchedGuests.map((g) => (
-                            <button
-                              key={g.id}
-                              onMouseDown={() => {
-                                navigate('/guests');
-                                setGlobalSearch('');
-                              }}
-                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#F3F4F6] flex items-center justify-between text-[12px]"
-                            >
-                              <span className="font-medium text-[#111111]">
-                                {g.name}
-                              </span>
-                              <span className="text-[11px] text-[#6B7280]">
-                                {g.phone}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {matchedRooms.length > 0 && (
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF] px-2 mb-1">
-                            Rooms
-                          </p>
-                          {matchedRooms.map((r) => (
-                            <button
-                              key={r.id}
-                              onMouseDown={() => {
-                                navigate('/rooms');
-                                setGlobalSearch('');
-                              }}
-                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#F3F4F6] flex items-center justify-between text-[12px]"
-                            >
-                              <span className="font-medium text-[#111111]">
-                                Room {r.roomNumber} · {r.floor}
-                              </span>
-                              <span className="text-[11px] text-[#6B7280]">
-                                {r.status}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </>
+                      </div>
+                    ))
                   )}
                 </div>
               )}

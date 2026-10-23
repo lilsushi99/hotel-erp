@@ -29,6 +29,7 @@ import {
   StatusBadge,
   Pagination,
   EmptyState,
+  DateRangeControl,
 } from '../../components/ui/PageControls';
 import {
   formatCompactCurrency,
@@ -79,6 +80,8 @@ export const BarPosPage: React.FC = () => {
   // Ledger state
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [ledgerPaymentFilter, setLedgerPaymentFilter] = useState('ALL');
+  const [ledgerDateFrom, setLedgerDateFrom] = useState('2026-10-01');
+  const [ledgerDateTo, setLedgerDateTo] = useState('2026-10-31');
   const [ledgerPage, setLedgerPage] = useState(1);
   const [selectedTx, setSelectedTx] = useState<PosTransaction | null>(null);
 
@@ -156,18 +159,27 @@ export const BarPosPage: React.FC = () => {
     );
   }, [checkedInBookings, guestSearchQuery]);
 
+  const dateFilteredBarTransactions = useMemo(() => {
+    return barTransactions.filter((t) => {
+      const txDate = t.date || t.dateTime.slice(0, 10);
+      if (ledgerDateFrom && txDate < ledgerDateFrom) return false;
+      if (ledgerDateTo && txDate > ledgerDateTo) return false;
+      return true;
+    });
+  }, [barTransactions, ledgerDateFrom, ledgerDateTo]);
+
   // 4 KPI Cards for Bar Sales Ledger — Only Title, Icon, and Figure
   const kpis = useMemo(() => {
-    const totalSales = barTransactions.reduce((s, t) => s + t.totalAmount, 0);
-    const txCount = barTransactions.length;
-    const unpaidRoomCharges = barTransactions
+    const totalSales = dateFilteredBarTransactions.reduce((s, t) => s + t.totalAmount, 0);
+    const txCount = dateFilteredBarTransactions.length;
+    const unpaidRoomCharges = dateFilteredBarTransactions
       .filter((t) => t.paymentStatus !== 'Paid')
       .reduce((s, t) => s + (t.totalAmount - t.amountPaid), 0);
     const lowStockBevs = branchBeverages.filter(
       (b) => b.availableQuantity <= b.reorderThreshold
     ).length;
     return { totalSales, txCount, unpaidRoomCharges, lowStockBevs };
-  }, [barTransactions, branchBeverages]);
+  }, [dateFilteredBarTransactions, branchBeverages]);
 
   const filteredBeverages = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -315,7 +327,7 @@ export const BarPosPage: React.FC = () => {
 
   const filteredLedger = useMemo(() => {
     const q = ledgerSearch.trim().toLowerCase();
-    return barTransactions.filter((t) => {
+    return dateFilteredBarTransactions.filter((t) => {
       if (
         q &&
         !t.id.toLowerCase().includes(q) &&
@@ -329,7 +341,7 @@ export const BarPosPage: React.FC = () => {
         return false;
       return true;
     });
-  }, [barTransactions, ledgerSearch, ledgerPaymentFilter]);
+  }, [dateFilteredBarTransactions, ledgerSearch, ledgerPaymentFilter]);
 
   const paginatedLedger = useMemo(() => {
     const start = (ledgerPage - 1) * 8;
@@ -341,31 +353,44 @@ export const BarPosPage: React.FC = () => {
       <PageHeader
         title="Bar & POS"
         actions={
-          <div className="inline-flex items-center bg-[#EAEAE4] p-1 rounded-[10px]">
-            <button
-              type="button"
-              onClick={() => setActiveTab('terminal')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
-                activeTab === 'terminal'
-                  ? 'bg-white text-[#1E1E1E] shadow-xs'
-                  : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
-              }`}
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              POS Terminal
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('ledger')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
-                activeTab === 'ledger'
-                  ? 'bg-white text-[#1E1E1E] shadow-xs'
-                  : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
-              }`}
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              Bar Sales Ledger ({barTransactions.length})
-            </button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {activeTab === 'ledger' && (
+              <DateRangeControl
+                fromDate={ledgerDateFrom}
+                toDate={ledgerDateTo}
+                onChange={(from, to) => {
+                  setLedgerDateFrom(from);
+                  setLedgerDateTo(to);
+                  setLedgerPage(1);
+                }}
+              />
+            )}
+            <div className="inline-flex items-center bg-[#EAEAE4] p-1 rounded-[10px]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('terminal')}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
+                  activeTab === 'terminal'
+                    ? 'bg-white text-[#1E1E1E] shadow-xs'
+                    : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
+                }`}
+              >
+                <ShoppingCart className="w-3.5 h-3.5" />
+                POS Terminal
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('ledger')}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors cursor-pointer ${
+                  activeTab === 'ledger'
+                    ? 'bg-white text-[#1E1E1E] shadow-xs'
+                    : 'text-[#6E6E6A] hover:text-[#1E1E1E]'
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                Bar Sales Ledger ({dateFilteredBarTransactions.length})
+              </button>
+            </div>
           </div>
         }
       />
@@ -386,7 +411,7 @@ export const BarPosPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedQuickBeverageId('ALL')}
-                  className={`px-3 py-1.5 rounded-[9px] text-[12px] font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[7px] text-[11.5px] font-normal transition-colors whitespace-nowrap cursor-pointer ${
                     selectedQuickBeverageId === 'ALL'
                       ? 'bg-[#7463A6] text-white'
                       : 'bg-[#F6F6F4] text-[#6E6E6A] hover:text-[#1E1E1E]'
@@ -403,7 +428,7 @@ export const BarPosPage: React.FC = () => {
                         prev === bev.id ? 'ALL' : bev.id
                       )
                     }
-                    className={`px-3 py-1.5 rounded-[9px] text-[12px] font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-[7px] text-[11.5px] font-normal transition-colors whitespace-nowrap cursor-pointer ${
                       selectedQuickBeverageId === bev.id
                         ? 'bg-[#7463A6] text-white'
                         : 'bg-[#F6F6F4] text-[#6E6E6A] hover:text-[#1E1E1E]'

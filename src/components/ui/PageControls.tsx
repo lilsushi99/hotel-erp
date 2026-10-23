@@ -652,8 +652,10 @@ export interface CustomTimePickerProps {
 const HOURS_24 = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES_60 = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
+const ITEM_HEIGHT = 32;
+
 /**
- * Reusable compact custom-styled 24-hour time picker control with 00-23 hour scroller and 00-59 minute scroller.
+ * Minimal iPhone-style vertical scrolling 24-hour time picker with Hours (00-23) and Minutes (00-59) columns.
  */
 export const CustomTimePicker: React.FC<CustomTimePickerProps> = ({
   value,
@@ -665,19 +667,41 @@ export const CustomTimePicker: React.FC<CustomTimePickerProps> = ({
   className = '',
 }) => {
   const [open, setOpen] = useState(false);
-  const parsedHour = value && value.includes(':') ? value.split(':')[0].padStart(2, '0') : '14';
-  const parsedMinute = value && value.includes(':') ? value.split(':')[1].padStart(2, '0') : '00';
-  const [draftHour, setDraftHour] = useState(parsedHour);
-  const [draftMinute, setDraftMinute] = useState(parsedMinute);
+  const parsedHour =
+    value && value.includes(':') ? value.split(':')[0].padStart(2, '0') : '14';
+  const parsedMinute =
+    value && value.includes(':') ? value.split(':')[1].padStart(2, '0') : '00';
+  const [selectedHour, setSelectedHour] = useState(parsedHour);
+  const [selectedMinute, setSelectedMinute] = useState(parsedMinute);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const hourListRef = useRef<HTMLDivElement>(null);
+  const minuteListRef = useRef<HTMLDivElement>(null);
+  const hourScrollTimeout = useRef<number | null>(null);
+  const minuteScrollTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     if (value && value.includes(':')) {
       const [h, m] = value.split(':');
-      setDraftHour((h || '14').padStart(2, '0'));
-      setDraftMinute((m || '00').padStart(2, '0'));
+      setSelectedHour((h || '14').padStart(2, '0'));
+      setSelectedMinute((m || '00').padStart(2, '0'));
     }
   }, [value]);
+
+  useEffect(() => {
+    if (open) {
+      const hIdx = Math.max(0, HOURS_24.indexOf(selectedHour));
+      const mIdx = Math.max(0, MINUTES_60.indexOf(selectedMinute));
+      requestAnimationFrame(() => {
+        if (hourListRef.current) {
+          hourListRef.current.scrollTop = hIdx * ITEM_HEIGHT;
+        }
+        if (minuteListRef.current) {
+          minuteListRef.current.scrollTop = mIdx * ITEM_HEIGHT;
+        }
+      });
+    }
+  }, [open]);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
@@ -692,24 +716,84 @@ export const CustomTimePicker: React.FC<CustomTimePickerProps> = ({
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
+  const commitTime = (hr: string, mn: string) => {
+    setSelectedHour(hr);
+    setSelectedMinute(mn);
+    onChange(`${hr}:${mn}`);
+  };
+
+  const handleHourScroll = () => {
+    if (!hourListRef.current) return;
+    if (hourScrollTimeout.current) {
+      window.clearTimeout(hourScrollTimeout.current);
+    }
+    hourScrollTimeout.current = window.setTimeout(() => {
+      if (!hourListRef.current) return;
+      const idx = Math.min(
+        23,
+        Math.max(0, Math.round(hourListRef.current.scrollTop / ITEM_HEIGHT))
+      );
+      const hr = HOURS_24[idx];
+      if (hr && hr !== selectedHour) {
+        commitTime(hr, selectedMinute);
+      }
+    }, 80);
+  };
+
+  const handleMinuteScroll = () => {
+    if (!minuteListRef.current) return;
+    if (minuteScrollTimeout.current) {
+      window.clearTimeout(minuteScrollTimeout.current);
+    }
+    minuteScrollTimeout.current = window.setTimeout(() => {
+      if (!minuteListRef.current) return;
+      const idx = Math.min(
+        59,
+        Math.max(0, Math.round(minuteListRef.current.scrollTop / ITEM_HEIGHT))
+      );
+      const mn = MINUTES_60[idx];
+      if (mn && mn !== selectedMinute) {
+        commitTime(selectedHour, mn);
+      }
+    }, 80);
+  };
+
+  const selectHourAndScroll = (hr: string, idx: number) => {
+    commitTime(hr, selectedMinute);
+    if (hourListRef.current) {
+      hourListRef.current.scrollTo({
+        top: idx * ITEM_HEIGHT,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  const selectMinuteAndScroll = (mn: string, idx: number) => {
+    commitTime(selectedHour, mn);
+    if (minuteListRef.current) {
+      minuteListRef.current.scrollTo({
+        top: idx * ITEM_HEIGHT,
+        behavior: 'smooth',
+      });
+    }
+  };
+
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {label && (
-        <label className="block text-[12px] font-normal text-[#4A4A46] mb-1">
+        <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
           {label}
         </label>
       )}
       <button
         type="button"
         onClick={() => {
-          if (value && value.includes(':')) {
-            const [h, m] = value.split(':');
-            setDraftHour((h || '14').padStart(2, '0'));
-            setDraftMinute((m || '00').padStart(2, '0'));
+          if (!value) {
+            commitTime(selectedHour, selectedMinute);
           }
           setOpen((o) => !o);
         }}
-        className={`w-full flex items-center justify-between gap-2 bg-white border rounded-[9px] px-3 py-2 text-[13px] font-normal transition-colors cursor-pointer ${
+        className={`w-full flex items-center justify-between gap-2 bg-white border rounded-[10px] px-3 py-2 text-[13px] font-normal transition-colors cursor-pointer ${
           open
             ? 'border-[#7463A6] ring-2 ring-[#7463A6]/15'
             : 'border-[#E2E2DC] hover:border-[#CFCFC8]'
@@ -721,34 +805,46 @@ export const CustomTimePicker: React.FC<CustomTimePickerProps> = ({
 
       {open && (
         <div
-          className={`absolute mt-1.5 z-50 w-[228px] bg-white border border-[#E6E6E0] rounded-[12px] shadow-[0_12px_32px_rgba(0,0,0,0.11)] p-3 select-none ${
+          className={`absolute mt-1.5 z-50 w-[188px] bg-white border border-[#E6E6E0] rounded-[14px] shadow-[0_12px_32px_rgba(0,0,0,0.11)] p-2.5 select-none ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#F0F0EC]">
-            <span className="text-[11px] font-medium text-[#6E6E6A]">24-Hour Time</span>
-            <span className="text-[12.5px] font-medium text-[#7463A6] tabular-nums bg-[#F1EEF8] px-2 py-0.5 rounded-[6px]">
-              {draftHour}:{draftMinute}
-            </span>
+          {/* Minimal Column Headers */}
+          <div className="grid grid-cols-2 gap-1 pb-1.5 mb-1 border-b border-[#F2F2EE] text-[11px] font-normal text-[#8E8E88] text-center">
+            <span>Hours</span>
+            <span>Minutes</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-[10.5px] font-medium text-[#8E8E88] text-center mb-1">
-                Hour (00–23)
-              </div>
-              <div className="max-h-40 overflow-y-auto border border-[#EFEFEA] rounded-[8px] p-1 space-y-0.5">
-                {HOURS_24.map((hr) => {
-                  const active = draftHour === hr;
+          {/* iPhone-style Wheel Container */}
+          <div className="relative h-[160px] overflow-hidden">
+            {/* Subtle Center Selection Highlight Bar */}
+            <div className="pointer-events-none absolute inset-x-1 top-[64px] h-[32px] rounded-[8px] bg-[#F1EEF8]/90 border border-[#7463A6]/20 z-0" />
+
+            <div className="relative z-10 grid grid-cols-2 gap-1 h-full">
+              {/* Hours Wheel (00 - 23) */}
+              <div
+                ref={hourListRef}
+                onScroll={handleHourScroll}
+                className="h-full overflow-y-auto snap-y snap-mandatory scrollbar-none"
+                style={{
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  paddingTop: `${ITEM_HEIGHT * 2}px`,
+                  paddingBottom: `${ITEM_HEIGHT * 2}px`,
+                }}
+              >
+                {HOURS_24.map((hr, idx) => {
+                  const active = selectedHour === hr;
                   return (
                     <button
                       key={hr}
                       type="button"
-                      onClick={() => setDraftHour(hr)}
-                      className={`w-full py-1 rounded-[6px] text-[12px] tabular-nums text-center transition-colors cursor-pointer ${
+                      onClick={() => selectHourAndScroll(hr, idx)}
+                      style={{ height: `${ITEM_HEIGHT}px` }}
+                      className={`w-full snap-center flex items-center justify-center text-[13.5px] tabular-nums transition-colors cursor-pointer ${
                         active
-                          ? 'bg-[#7463A6] text-white font-medium'
-                          : 'text-[#1E1E1E] hover:bg-[#F4F4F0]'
+                          ? 'text-[#7463A6] font-medium'
+                          : 'text-[#8E8E88] font-normal hover:text-[#1E1E1E]'
                       }`}
                     >
                       {hr}
@@ -756,24 +852,31 @@ export const CustomTimePicker: React.FC<CustomTimePickerProps> = ({
                   );
                 })}
               </div>
-            </div>
 
-            <div>
-              <div className="text-[10.5px] font-medium text-[#8E8E88] text-center mb-1">
-                Min (00–59)
-              </div>
-              <div className="max-h-40 overflow-y-auto border border-[#EFEFEA] rounded-[8px] p-1 space-y-0.5">
-                {MINUTES_60.map((mn) => {
-                  const active = draftMinute === mn;
+              {/* Minutes Wheel (00 - 59) */}
+              <div
+                ref={minuteListRef}
+                onScroll={handleMinuteScroll}
+                className="h-full overflow-y-auto snap-y snap-mandatory scrollbar-none"
+                style={{
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  paddingTop: `${ITEM_HEIGHT * 2}px`,
+                  paddingBottom: `${ITEM_HEIGHT * 2}px`,
+                }}
+              >
+                {MINUTES_60.map((mn, idx) => {
+                  const active = selectedMinute === mn;
                   return (
                     <button
                       key={mn}
                       type="button"
-                      onClick={() => setDraftMinute(mn)}
-                      className={`w-full py-1 rounded-[6px] text-[12px] tabular-nums text-center transition-colors cursor-pointer ${
+                      onClick={() => selectMinuteAndScroll(mn, idx)}
+                      style={{ height: `${ITEM_HEIGHT}px` }}
+                      className={`w-full snap-center flex items-center justify-center text-[13.5px] tabular-nums transition-colors cursor-pointer ${
                         active
-                          ? 'bg-[#7463A6] text-white font-medium'
-                          : 'text-[#1E1E1E] hover:bg-[#F4F4F0]'
+                          ? 'text-[#7463A6] font-medium'
+                          : 'text-[#8E8E88] font-normal hover:text-[#1E1E1E]'
                       }`}
                     >
                       {mn}
@@ -784,41 +887,20 @@ export const CustomTimePicker: React.FC<CustomTimePickerProps> = ({
             </div>
           </div>
 
-          <div className="mt-2.5 pt-2 border-t border-[#F0F0EC] flex items-center justify-between gap-1.5">
-            {optional ? (
+          {optional && value && (
+            <div className="mt-1.5 pt-1.5 border-t border-[#F2F2EE] flex justify-center">
               <button
                 type="button"
                 onClick={() => {
                   onChange('');
                   setOpen(false);
                 }}
-                className="px-2 py-1 rounded-[7px] text-[11.5px] font-normal text-[#6E6E6A] hover:text-[#1E1E1E] hover:bg-[#F4F4F0] cursor-pointer"
+                className="text-[11px] font-normal text-[#8E8E88] hover:text-[#1E1E1E] cursor-pointer"
               >
                 Clear
               </button>
-            ) : (
-              <span />
-            )}
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="px-2 py-1 rounded-[7px] text-[11.5px] font-normal text-[#5A5A55] hover:bg-[#F4F4F0] cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(`${draftHour}:${draftMinute}`);
-                  setOpen(false);
-                }}
-                className="px-2.5 py-1 rounded-[7px] text-[11.5px] font-medium bg-[#7463A6] hover:bg-[#635394] text-white cursor-pointer"
-              >
-                Apply
-              </button>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -857,12 +939,16 @@ export const DateRangeControl: React.FC<DateRangeControlProps> = ({
     const e = toDate || '2026-10-31';
     const todayPreset = getPresetDateRange('today');
     const last7Preset = getPresetDateRange('last7');
+    const last30Preset = getPresetDateRange('last30');
     const monthPreset = getPresetDateRange('month');
     if (s === todayPreset.startDate && e === todayPreset.endDate) {
       return { preset: 'today', startDate: s, endDate: e };
     }
     if (s === last7Preset.startDate && e === last7Preset.endDate) {
       return { preset: 'last7', startDate: s, endDate: e };
+    }
+    if (s === last30Preset.startDate && e === last30Preset.endDate) {
+      return { preset: 'last30', startDate: s, endDate: e };
     }
     if (s === '2026-10-01' && (e === '2026-10-31' || e === monthPreset.endDate)) {
       return { preset: 'month', startDate: s, endDate: e };
@@ -923,6 +1009,7 @@ export const DateRangeControl: React.FC<DateRangeControlProps> = ({
   const presets: { key: DateFilterPreset; label: string }[] = [
     { key: 'today', label: 'Today' },
     { key: 'last7', label: 'Last 7 Days' },
+    { key: 'last30', label: 'Last 30 Days' },
     { key: 'month', label: 'This Month' },
     { key: 'custom', label: 'Custom Range' },
   ];
