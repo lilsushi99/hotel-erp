@@ -7,11 +7,9 @@ import {
   TrendingDown,
   Download,
   Check,
-  XCircle,
   Trash2,
   Edit3,
   Palette,
-  ArrowUpDown,
 } from 'lucide-react';
 import { useHotel } from '../../context/HotelContext';
 import { KpiCard } from '../../components/ui/KpiCard';
@@ -19,21 +17,21 @@ import {
   PageHeader,
   TableToolbar,
   SearchInput,
-  SelectFilter,
   PrimaryButton,
   SecondaryButton,
   EmptyState,
 } from '../../components/ui/PageControls';
-import { Modal } from '../../components/ui/Overlay';
-import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Modal, ConfirmDialog } from '../../components/ui/Overlay';
+import { Dropdown } from '../../components/ui/Dropdown';
 import {
-  CustomDateRangePicker,
+  DateRangeControl,
   CustomSingleDatePicker,
 } from '../../components/ui/CustomDatePicker';
 import {
   Expense,
   ExpenseCategoryConfig,
   PaymentMethod,
+  DateRangeFilter,
 } from '../../types/hotel';
 import {
   formatCurrency,
@@ -41,6 +39,7 @@ import {
   isDateInRange,
   getPresetDateRange,
   exportToCsv,
+  getExpenseDepartment,
   TODAY_STR,
 } from '../../utils/formatters';
 
@@ -49,6 +48,16 @@ const PAYMENT_METHODS: PaymentMethod[] = [
   'Card',
   'Cash',
   'POS Terminal',
+];
+
+const EXPENSE_DEPARTMENTS: string[] = [
+  'Rooms',
+  'Bar',
+  'Restaurant',
+  'Laundry',
+  'Housekeeping/Cleaning',
+  'Maintenance',
+  'Administration',
 ];
 
 const CURATED_CATEGORY_COLORS = [
@@ -80,45 +89,39 @@ const DEFAULT_CATEGORY_CONFIGS: ExpenseCategoryConfig[] = [
 export const ExpensesPage: React.FC = () => {
   const {
     expenses,
-    staff,
+    currentUser,
     selectedBranchId,
     settings,
     createExpense,
     updateExpense,
-    updateExpenseStatus,
     deleteExpense,
     saveExpenseCategories,
     notify,
   } = useHotel();
 
-  const [datePreset, setDatePreset] = useState<
-    'today' | 'week' | 'month' | 'custom'
-  >('month');
-  const [dateRange, setDateRange] = useState(() => {
-    const base = getPresetDateRange('month');
-    return { fromDate: base.startDate, toDate: '2026-10-31' };
-  });
+  const [dateFilter, setDateFilter] = useState<DateRangeFilter>(() =>
+    getPresetDateRange('month')
+  );
 
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [search, setSearch] = useState('');
-  const [dateSortOrder, setDateSortOrder] = useState<'DESC' | 'ASC'>('DESC');
 
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   // Expense Form State
   const [date, setDate] = useState(TODAY_STR);
-  const [category, setCategory] = useState<string>('Utilities & Diesel');
+  const [category, setCategory] = useState<string>('Utilities & Power');
+  const [department, setDepartment] = useState<string>('Maintenance');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number>(45000);
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethod>('Bank Transfer');
   const [responsibleStaff, setResponsibleStaff] = useState(
-    'Adaeze Okafor-Vance'
+    currentUser.name
   );
-  const [notes, setNotes] = useState('');
 
   // Manage Categories Modal State
   const [editableConfigs, setEditableConfigs] = useState<
@@ -156,29 +159,14 @@ export const ExpensesPage: React.FC = () => {
     return Array.from(map.entries()).map(([name, color]) => ({ name, color }));
   }, [settings.expenseCategoryConfigs, settings.expenseCategories, expenses]);
 
-  const getCategoryColor = (catName: string) =>
-    categoryConfigs.find((c) => c.name === catName)?.color || '#7463A6';
-
-  const handleDatePresetChange = (value: string) => {
-    const preset = value as 'today' | 'week' | 'month' | 'custom';
-    setDatePreset(preset);
-    if (preset !== 'custom') {
-      const next = getPresetDateRange(preset);
-      setDateRange({
-        fromDate: next.startDate,
-        toDate: preset === 'month' ? '2026-10-31' : next.endDate,
-      });
-    }
-  };
-
   const branchExpenses = useMemo(
     () =>
       expenses.filter(
         (e) =>
           (selectedBranchId === 'ALL' || e.branchId === selectedBranchId) &&
-          isDateInRange(e.date, dateRange.fromDate, dateRange.toDate)
+          isDateInRange(e.date, dateFilter)
       ),
-    [expenses, selectedBranchId, dateRange]
+    [expenses, selectedBranchId, dateFilter]
   );
 
   // KPIs
@@ -208,37 +196,33 @@ export const ExpensesPage: React.FC = () => {
 
   const filteredExpenses = useMemo(() => {
     const list = branchExpenses.filter((e) => {
-      if (statusFilter !== 'ALL' && e.status !== statusFilter) return false;
       if (categoryFilter !== 'ALL' && e.category !== categoryFilter)
         return false;
       if (search.trim()) {
         const q = search.toLowerCase();
+        const dept = getExpenseDepartment(e).toLowerCase();
         const matchRef = e.reference.toLowerCase().includes(q);
         const matchDesc = e.description.toLowerCase().includes(q);
         const matchStaff = e.responsibleStaff.toLowerCase().includes(q);
-        const matchNotes = e.notes.toLowerCase().includes(q);
-        if (!matchRef && !matchDesc && !matchStaff && !matchNotes) return false;
+        const matchDept = dept.includes(q);
+        if (!matchRef && !matchDesc && !matchStaff && !matchDept) return false;
       }
       return true;
     });
 
-    return [...list].sort((a, b) => {
-      if (dateSortOrder === 'DESC') {
-        return b.date.localeCompare(a.date);
-      }
-      return a.date.localeCompare(b.date);
-    });
-  }, [branchExpenses, statusFilter, categoryFilter, search, dateSortOrder]);
+    return [...list].sort((a, b) => b.date.localeCompare(a.date));
+  }, [branchExpenses, categoryFilter, search]);
 
   const openNewModal = () => {
     setEditingExpense(null);
     setDate(TODAY_STR);
-    setCategory(categoryConfigs[0]?.name || 'Utilities & Diesel');
+    const defaultCat = categoryConfigs[0]?.name || 'Utilities & Power';
+    setCategory(defaultCat);
+    setDepartment(getExpenseDepartment({ category: defaultCat }));
     setDescription('');
     setAmount(45000);
     setPaymentMethod('Bank Transfer');
-    setResponsibleStaff(staff[0]?.name || 'Adaeze Okafor-Vance');
-    setNotes('');
+    setResponsibleStaff(currentUser.name);
     setShowModal(true);
   };
 
@@ -246,17 +230,17 @@ export const ExpensesPage: React.FC = () => {
     setEditingExpense(exp);
     setDate(exp.date);
     setCategory(exp.category);
+    setDepartment(getExpenseDepartment(exp));
     setDescription(exp.description);
     setAmount(exp.amount);
     setPaymentMethod(exp.paymentMethod);
-    setResponsibleStaff(exp.responsibleStaff);
-    setNotes(exp.notes);
+    setResponsibleStaff(exp.responsibleStaff || currentUser.name);
     setShowModal(true);
   };
 
   const handleSaveExpense = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description.trim() || amount <= 0) return;
+    if (!description.trim() || amount <= 0 || !department) return;
     const activeBranch =
       selectedBranchId === 'ALL' ? 'BR-01' : selectedBranchId;
 
@@ -264,23 +248,24 @@ export const ExpensesPage: React.FC = () => {
       updateExpense(editingExpense.id, {
         date,
         category,
+        department,
         description: description.trim(),
         amount,
         paymentMethod,
         responsibleStaff,
-        notes: notes.trim(),
       });
     } else {
       createExpense({
         date,
         category,
+        department,
         description: description.trim(),
         amount,
         paymentMethod,
-        status: 'Pending',
-        responsibleStaff,
+        status: 'Approved',
+        responsibleStaff: currentUser.name,
         branchId: activeBranch,
-        notes: notes.trim(),
+        notes: '',
       });
     }
     setShowModal(false);
@@ -355,15 +340,14 @@ export const ExpensesPage: React.FC = () => {
     exportToCsv(
       'lumina-expenses-ledger.csv',
       filteredExpenses.map((e) => ({
-        Reference: e.reference,
+        ExpenseID: e.reference,
         Date: e.date,
         Category: e.category,
         Description: e.description,
+        RecordedBy: e.responsibleStaff,
         Amount: e.amount,
         PaymentMethod: e.paymentMethod,
-        Status: e.status,
-        ResponsibleStaff: e.responsibleStaff,
-        Notes: e.notes,
+        Department: getExpenseDepartment(e),
       }))
     );
   };
@@ -374,28 +358,10 @@ export const ExpensesPage: React.FC = () => {
         title="Expense Management"
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
-            <SelectFilter
-              value={datePreset}
-              onChange={handleDatePresetChange}
-              options={[
-                { value: 'today', label: 'Today' },
-                { value: 'week', label: 'Last 7 Days' },
-                { value: 'month', label: 'This Month' },
-                { value: 'custom', label: 'Custom Range' },
-              ]}
-            />
-            {datePreset === 'custom' && (
-              <CustomDateRangePicker
-                fromDate={dateRange.fromDate}
-                toDate={dateRange.toDate}
-                onChange={(fromDate, toDate) =>
-                  setDateRange({ fromDate, toDate })
-                }
-              />
-            )}
+            <DateRangeControl value={dateFilter} onChange={setDateFilter} />
             <SecondaryButton onClick={openManageCategoriesModal}>
               <Palette className="w-4 h-4" />
-              Manage Expense Categories
+              Expense Category
             </SecondaryButton>
             <PrimaryButton onClick={openNewModal}>
               <Plus className="w-4 h-4" />
@@ -405,7 +371,7 @@ export const ExpensesPage: React.FC = () => {
         }
       />
 
-      {/* 4 KPI Cards — Overview height standard, no supporting text */}
+      {/* 4 KPI Cards — Overview height standard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           label="Total Expenses"
@@ -444,13 +410,12 @@ export const ExpensesPage: React.FC = () => {
               <SearchInput
                 value={search}
                 onChange={setSearch}
-                placeholder="Search reference, description, or staff..."
+                placeholder="Search expense ID, description, department, or staff..."
               />
             }
             right={
               <div className="flex flex-wrap items-center gap-2">
-                <SelectFilter
-                  label="Category"
+                <Dropdown
                   value={categoryFilter}
                   onChange={setCategoryFilter}
                   options={[
@@ -460,39 +425,12 @@ export const ExpensesPage: React.FC = () => {
                       label: c.name,
                     })),
                   ]}
-                />
-                <SelectFilter
-                  label="Status"
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  options={[
-                    { value: 'ALL', label: 'All Statuses' },
-                    { value: 'Approved', label: 'Approved' },
-                    { value: 'Pending', label: 'Pending' },
-                    { value: 'Rejected', label: 'Rejected' },
-                  ]}
+                  className="w-56"
                 />
                 <SecondaryButton onClick={handleExport}>
                   <Download className="w-4 h-4" />
                   Export CSV
                 </SecondaryButton>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDateSortOrder((prev) =>
-                      prev === 'DESC' ? 'ASC' : 'DESC'
-                    )
-                  }
-                  title={
-                    dateSortOrder === 'DESC'
-                      ? 'Sorted: Newest First (Click for Oldest First)'
-                      : 'Sorted: Oldest First (Click for Newest First)'
-                  }
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-white hover:bg-[#FAFAFA] text-[#111111] font-medium text-[12px] border border-[#E2E2DC] transition-colors cursor-pointer"
-                >
-                  <ArrowUpDown className="w-3.5 h-3.5 text-[#7463A6]" />
-                  {dateSortOrder === 'DESC' ? 'Newest' : 'Oldest'}
-                </button>
               </div>
             }
           />
@@ -514,107 +452,82 @@ export const ExpensesPage: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[#EFEFEF] bg-[#FAFAFA]">
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
-                      Ref & Date
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                      Expense ID
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                      Date
+                    </th>
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                       Category
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
-                      Description & Payment Method
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                      Description
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                       Recorded By
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] text-right">
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] text-right whitespace-nowrap">
                       Amount
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
-                      Status
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                      Payment Method
                     </th>
-                    <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] text-right">
-                      Workflow Actions
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                      Department
+                    </th>
+                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] text-right whitespace-nowrap">
+                      Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F3F4F6] text-[13px]">
                   {filteredExpenses.map((exp) => {
-                    const catColor = getCategoryColor(exp.category);
+                    const dept = getExpenseDepartment(exp);
                     return (
                       <tr
                         key={exp.id}
                         className="hover:bg-[#FAFAFA] transition-colors"
                       >
-                        <td className="py-3.5 px-4">
-                          <p className="font-mono font-semibold text-[#111111] text-[12px]">
-                            {exp.reference}
-                          </p>
-                          <p className="text-[11px] text-[#6B7280]">
-                            {formatDate(exp.date)}
-                          </p>
+                        <td className="py-3.5 px-4 font-mono font-normal text-[#111111] text-[12.5px] whitespace-nowrap">
+                          {exp.reference}
                         </td>
-                        <td className="py-3.5 px-4">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F9FAFB] border border-[#ECECEC] text-[#111111] text-[12px] font-medium">
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: catColor }}
-                            />
-                            {exp.category}
-                          </span>
+                        <td className="py-3.5 px-4 font-normal text-[#4B5563] whitespace-nowrap">
+                          {formatDate(exp.date)}
                         </td>
-                        <td className="py-3.5 px-4">
-                          <p className="font-semibold text-[#111111]">
-                            {exp.description}
-                          </p>
-                          <p className="text-[11px] text-[#6B7280]">
-                            {exp.paymentMethod}
-                            {exp.notes ? ` · ${exp.notes}` : ''}
-                          </p>
+                        <td className="py-3.5 px-4 font-normal text-[#111111] whitespace-nowrap">
+                          {exp.category}
                         </td>
-                        <td className="py-3.5 px-4 text-[#374151]">
+                        <td className="py-3.5 px-4 font-normal text-[#111111] whitespace-nowrap">
+                          {exp.description}
+                        </td>
+                        <td className="py-3.5 px-4 font-normal text-[#374151] whitespace-nowrap">
                           {exp.responsibleStaff}
                         </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-[#111111] tabular-nums">
+                        <td className="py-3.5 px-4 text-right font-normal text-[#111111] tabular-nums whitespace-nowrap">
                           {formatCurrency(exp.amount, settings.currencySymbol)}
                         </td>
-                        <td className="py-3.5 px-4">
-                          <StatusBadge status={exp.status} />
+                        <td className="py-3.5 px-4 font-normal text-[#4B5563] whitespace-nowrap">
+                          {exp.paymentMethod}
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 font-normal text-[#374151] whitespace-nowrap">
+                          {dept}
+                        </td>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
-                            {exp.status === 'Pending' && (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    updateExpenseStatus(exp.id, 'Approved')
-                                  }
-                                  className="px-2 py-1 rounded-md text-[11px] font-semibold bg-[#ECFDF5] text-[#15803D] hover:bg-[#D1FAE5] inline-flex items-center gap-1"
-                                >
-                                  <Check className="w-3 h-3" />
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    updateExpenseStatus(exp.id, 'Rejected')
-                                  }
-                                  className="px-2 py-1 rounded-md text-[11px] font-semibold bg-[#FEF2F2] text-[#DC2626] hover:bg-[#FEE2E2] inline-flex items-center gap-1"
-                                >
-                                  <XCircle className="w-3 h-3" />
-                                  Reject
-                                </button>
-                              </>
-                            )}
                             <button
+                              type="button"
                               onClick={() => openEditModal(exp)}
                               title="Edit Expense"
-                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6]"
+                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6] cursor-pointer"
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => deleteExpense(exp.id)}
+                              type="button"
+                              onClick={() => setDeletingExpense(exp)}
                               title="Delete Expense"
-                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2]"
+                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -630,7 +543,7 @@ export const ExpensesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Record / Edit Expense Modal (no subtitle, CustomSingleDatePicker) */}
+      {/* Record / Edit Expense Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -640,31 +553,26 @@ export const ExpensesPage: React.FC = () => {
         <form onSubmit={handleSaveExpense} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
+              <label className="block text-[12px] font-medium text-[#374151] mb-1.5">
                 Expense Date
               </label>
               <CustomSingleDatePicker value={date} onChange={setDate} />
             </div>
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-                Expense Category
-              </label>
-              <select
+              <Dropdown
+                label="Expense Category *"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3.5 py-2 bg-white border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
-              >
-                {categoryConfigs.map((cat) => (
-                  <option key={cat.name} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategory}
+                options={categoryConfigs.map((cat) => ({
+                  value: cat.name,
+                  label: cat.name,
+                }))}
+              />
             </div>
           </div>
 
           <div>
-            <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
+            <label className="block text-[12px] font-medium text-[#374151] mb-1.5">
               Description *
             </label>
             <input
@@ -673,14 +581,25 @@ export const ExpensesPage: React.FC = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g. 1,500L Automotive Gas Oil (Diesel) Delivery"
-              className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
+              className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[11px] text-[13px] focus:outline-none focus:border-[#7463A6]"
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-                Amount (₦) *
+              <Dropdown
+                label="Department *"
+                value={department}
+                onChange={setDepartment}
+                options={EXPENSE_DEPARTMENTS.map((dept) => ({
+                  value: dept,
+                  label: dept,
+                }))}
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-[#374151] mb-1.5">
+                Amount ({settings.currencySymbol}) *
               </label>
               <input
                 type="number"
@@ -689,63 +608,41 @@ export const ExpensesPage: React.FC = () => {
                 required
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
-                className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
+                className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[11px] text-[13px] focus:outline-none focus:border-[#7463A6]"
               />
-            </div>
-            <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-                Payment Method
-              </label>
-              <select
-                value={paymentMethod}
-                onChange={(e) =>
-                  setPaymentMethod(e.target.value as PaymentMethod)
-                }
-                className="w-full px-3.5 py-2 bg-white border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
-              >
-                {PAYMENT_METHODS.map((pm) => (
-                  <option key={pm} value={pm}>
-                    {pm}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-                Recorded By
-              </label>
-              <select
-                value={responsibleStaff}
-                onChange={(e) => setResponsibleStaff(e.target.value)}
-                className="w-full px-3.5 py-2 bg-white border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
-              >
-                {staff.map((st) => (
-                  <option key={st.id} value={st.name}>
-                    {st.name}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">
-              Vendor / Invoice Notes
-            </label>
-            <input
-              type="text"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Vendor name, invoice number, or approval remark"
-              className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-[10px] text-[13px] focus:outline-none focus:border-[#7463A6]"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Dropdown
+                label="Payment Method"
+                value={paymentMethod}
+                onChange={(val) => setPaymentMethod(val as PaymentMethod)}
+                options={PAYMENT_METHODS.map((pm) => ({
+                  value: pm,
+                  label: pm,
+                }))}
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-[#374151] mb-1.5">
+                Recorded By
+              </label>
+              <input
+                type="text"
+                readOnly
+                value={editingExpense ? responsibleStaff : currentUser.name}
+                className="w-full px-3.5 py-2 bg-[#F7F7F5] border border-[#E5E7EB] rounded-[11px] text-[13px] text-[#4B5563] cursor-not-allowed"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#EFEFEF]">
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 rounded-[10px] text-[13px] font-medium text-[#374151] hover:bg-[#F3F4F6]"
+              className="px-4 py-2 rounded-[10px] text-[13px] font-medium text-[#374151] hover:bg-[#F3F4F6] cursor-pointer"
             >
               Cancel
             </button>
@@ -756,17 +653,37 @@ export const ExpensesPage: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Manage Expense Categories & Colors Modal */}
+      {/* Delete Expense Confirmation */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingExpense)}
+        onClose={() => setDeletingExpense(null)}
+        onConfirm={() => {
+          if (deletingExpense) {
+            deleteExpense(deletingExpense.id);
+            setDeletingExpense(null);
+          }
+        }}
+        title="Delete Expense Record"
+        description={
+          deletingExpense
+            ? `Are you sure you want to permanently delete expense ${deletingExpense.reference} (${deletingExpense.description})? This action cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete Expense"
+        destructive
+      />
+
+      {/* Expense Category Modal */}
       <Modal
         isOpen={showCategoryModal}
         onClose={() => setShowCategoryModal(false)}
-        title="Manage Expense Categories"
+        title="Expense Category"
         size="lg"
       >
         <form onSubmit={handleSaveCategoriesSubmit} className="space-y-5">
           {/* Add New Category Bar */}
           <div className="p-3.5 rounded-[14px] bg-[#FAFAFA] border border-[#E5E7EB] space-y-3">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+            <label className="block text-[11px] font-medium uppercase tracking-wider text-[#6B7280]">
               Create New Expense Category
             </label>
             <div className="flex flex-wrap items-center gap-3">
@@ -783,7 +700,7 @@ export const ExpensesPage: React.FC = () => {
                     key={c}
                     type="button"
                     onClick={() => setNewCategoryColor(c)}
-                    className={`w-6 h-6 rounded-full transition-transform ${
+                    className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
                       newCategoryColor === c
                         ? 'scale-110 ring-2 ring-offset-2 ring-[#7463A6]'
                         : ' opacity-80 hover:opacity-100'
@@ -795,7 +712,7 @@ export const ExpensesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleAddCategoryRow}
-                className="px-3.5 py-2 rounded-[10px] text-[12px] font-semibold bg-[#7463A6] text-white hover:bg-[#635394] transition-colors inline-flex items-center gap-1"
+                className="px-3.5 py-2 rounded-[10px] text-[12px] font-medium bg-[#7463A6] text-white hover:bg-[#635394] transition-colors inline-flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Category
@@ -830,7 +747,7 @@ export const ExpensesPage: React.FC = () => {
                           )
                         )
                       }
-                      className="flex-1 px-2.5 py-1.5 border border-[#E5E7EB] rounded-lg text-[13px] font-medium text-[#111111] focus:outline-none focus:border-[#7463A6]"
+                      className="flex-1 px-2.5 py-1.5 border border-[#E5E7EB] rounded-lg text-[13px] font-normal text-[#111111] focus:outline-none focus:border-[#7463A6]"
                     />
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -845,7 +762,7 @@ export const ExpensesPage: React.FC = () => {
                             )
                           )
                         }
-                        className={`w-4 h-4 rounded-full transition-transform ${
+                        className={`w-4 h-4 rounded-full transition-transform cursor-pointer ${
                           cfg.color === swatch
                             ? 'scale-125 ring-2 ring-offset-1 ring-[#111111]'
                             : 'opacity-70 hover:opacity-100'
@@ -867,7 +784,7 @@ export const ExpensesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowCategoryModal(false)}
-              className="px-4 py-2 rounded-[10px] text-[13px] font-medium text-[#374151] hover:bg-[#F3F4F6]"
+              className="px-4 py-2 rounded-[10px] text-[13px] font-medium text-[#374151] hover:bg-[#F3F4F6] cursor-pointer"
             >
               Cancel
             </button>

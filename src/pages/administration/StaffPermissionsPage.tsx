@@ -269,7 +269,6 @@ export const StaffPermissionsPage: React.FC = () => {
               options={[
                 { label: 'All Statuses', value: 'All' },
                 { label: 'Active', value: 'Active' },
-                { label: 'On Shift', value: 'On Shift' },
                 { label: 'Inactive', value: 'Inactive' },
               ]}
               size="sm"
@@ -288,78 +287,82 @@ export const StaffPermissionsPage: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-100 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">
-                    <th className="py-3 px-4">Staff Member</th>
-                    <th className="py-3 px-4">Job Title & Dept</th>
-                    <th className="py-3 px-4">Access Role</th>
-                    <th className="py-3 px-4">Last Activity</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                  <tr className="border-b border-gray-100 text-[11px] font-medium text-[#6B7280] uppercase tracking-wider">
+                    <th className="py-3 px-4 whitespace-nowrap">Staff Member</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Job Title & Dept</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Access Role</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Last Activity</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Status</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-[13px]">
-                  {filteredStaff.map((member) => (
-                    <tr
-                      key={member.id}
-                      className="hover:bg-[#F9FAFB]/80 transition-colors"
-                    >
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#F3EEFF] text-[#7D53DE] flex items-center justify-center font-bold text-[12px] shrink-0">
-                            {member.name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')
-                              .slice(0, 2)
-                              .toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-[#111827]">{member.name}</div>
-                            <div className="text-[11.5px] text-[#6B7280] mt-0.5">
-                              {member.email} · {member.phone}
+                  {filteredStaff.map((member) => {
+                    const normalizedStatus =
+                      member.status === 'On Shift' ? 'Active' : member.status;
+                    return (
+                      <tr
+                        key={member.id}
+                        className="hover:bg-[#F9FAFB]/80 transition-colors"
+                      >
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#F3EEFF] text-[#7D53DE] flex items-center justify-center font-medium text-[12px] shrink-0">
+                              {member.name
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')
+                                .slice(0, 2)
+                                .toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="font-normal text-[#111827]">{member.name}</div>
+                              <div className="text-[11.5px] font-normal text-[#6B7280] mt-0.5">
+                                {member.email} · {member.phone}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-[#111827]">
-                          {member.jobTitle || member.role}
-                        </div>
-                        <div className="text-[11.5px] text-[#6B7280] mt-0.5">
-                          {member.department}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-[6px] text-[11.5px] font-medium bg-gray-100 text-[#374151]">
-                          {member.role}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-[#6B7280] text-[12.5px]">
-                        {member.lastActivity}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <StatusBadge status={member.status} />
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="inline-flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => openEditStaff(member)}
-                            className="p-1.5 rounded-[8px] text-[#6B7280] hover:text-[#111827] hover:bg-gray-100 transition-colors cursor-pointer"
-                            title="Edit Staff Member"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setStaffToDelete(member)}
-                            className="p-1.5 rounded-[8px] text-[#6B7280] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                            title="Remove Staff Member"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="font-normal text-[#111827]">
+                            {member.jobTitle || member.role}
+                          </div>
+                          <div className="text-[11.5px] font-normal text-[#6B7280] mt-0.5">
+                            {member.department}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-[6px] text-[11.5px] font-normal bg-gray-100 text-[#374151]">
+                            {member.role}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-normal text-[#6B7280] text-[12.5px] whitespace-nowrap">
+                          {member.lastActivity}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <StatusBadge status={normalizedStatus} />
+                        </td>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => openEditStaff(member)}
+                              className="p-1.5 rounded-[8px] text-[#6B7280] hover:text-[#111827] hover:bg-gray-100 transition-colors cursor-pointer"
+                              title="Edit Staff Member"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setStaffToDelete(member)}
+                              className="p-1.5 rounded-[8px] text-[#6B7280] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Remove Staff Member"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -370,7 +373,7 @@ export const StaffPermissionsPage: React.FC = () => {
       {/* Role Permissions Matrix */}
       <div className="bg-[#F0F0F0] p-[3px] rounded-[20px]">
         <div className="px-4 py-3">
-          <h2 className="text-[15px] font-bold text-[#111827]">Role Permissions Matrix</h2>
+          <h2 className="text-[15px] font-semibold text-[#111827]">Role Permissions Matrix</h2>
           <p className="text-[12px] text-[#6B7280] mt-0.5">
             Click any cell to grant or revoke module permissions for that role.
           </p>
@@ -379,10 +382,10 @@ export const StaffPermissionsPage: React.FC = () => {
         <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-100 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">
-                <th className="py-3 px-4">Role / Modules Access</th>
+              <tr className="border-b border-gray-100 text-[11px] font-medium text-[#6B7280] uppercase tracking-wider">
+                <th className="py-3 px-4 whitespace-nowrap">Role / Modules Access</th>
                 {PERMISSION_KEYS.map((perm) => (
-                  <th key={perm.key} className="py-3 px-3 text-center">
+                  <th key={perm.key} className="py-3 px-3 text-center whitespace-nowrap">
                     {perm.label}
                   </th>
                 ))}
@@ -394,9 +397,9 @@ export const StaffPermissionsPage: React.FC = () => {
                   key={rp.role}
                   className="hover:bg-[#F9FAFB]/80 transition-colors"
                 >
-                  <td className="py-3 px-4">
-                    <div className="font-semibold text-[#111827]">{rp.role}</div>
-                    <div className="text-[11px] text-[#6B7280]">
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    <div className="font-medium text-[#111827]">{rp.role}</div>
+                    <div className="text-[11px] font-normal text-[#6B7280]">
                       {rp.modulesAccess.join(' · ')}
                     </div>
                   </td>
@@ -404,7 +407,7 @@ export const StaffPermissionsPage: React.FC = () => {
                     const allowed = rp.permissions[perm.key];
                     const isSuperAdmin = rp.role === 'Administrator';
                     return (
-                      <td key={perm.key} className="py-3 px-3 text-center">
+                      <td key={perm.key} className="py-3 px-3 text-center whitespace-nowrap">
                         <button
                           type="button"
                           disabled={isSuperAdmin}
@@ -505,7 +508,7 @@ export const StaffPermissionsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 ${editingStaff ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-4`}>
             <div>
               <label className="block text-[12px] font-medium text-[#374151] mb-1">
                 Department
@@ -532,26 +535,27 @@ export const StaffPermissionsPage: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-[12px] font-medium text-[#374151] mb-1">
-                Status
-              </label>
-              <Dropdown
-                value={formData.status}
-                onChange={(val: string) =>
-                  setFormData({
-                    ...formData,
-                    status: val as StaffMember['status'],
-                  })
-                }
-                options={[
-                  { label: 'Active', value: 'Active' },
-                  { label: 'On Shift', value: 'On Shift' },
-                  { label: 'Inactive', value: 'Inactive' },
-                ]}
-                className="w-full"
-              />
-            </div>
+            {editingStaff && (
+              <div>
+                <label className="block text-[12px] font-medium text-[#374151] mb-1">
+                  Status
+                </label>
+                <Dropdown
+                  value={formData.status === 'On Shift' ? 'Active' : formData.status}
+                  onChange={(val: string) =>
+                    setFormData({
+                      ...formData,
+                      status: val as StaffMember['status'],
+                    })
+                  }
+                  options={[
+                    { label: 'Active', value: 'Active' },
+                    { label: 'Inactive', value: 'Inactive' },
+                  ]}
+                  className="w-full"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">

@@ -1,5 +1,7 @@
 import React, { useId } from 'react';
 import { LucideIcon } from 'lucide-react';
+import { useHotel } from '../../context/HotelContext';
+import { formatCompactCurrency, formatCompactNumber } from '../../utils/formatters';
 
 export type KpiIconTone =
   | 'purple'
@@ -109,6 +111,10 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   highlight = false,
   sparklineData,
 }) => {
+  const { settings } = useHotel();
+  const numberFormat = settings.numberFormat || 'compact';
+  const currencySymbol = settings.currencySymbol || '₦';
+
   const uid = useId().replace(/:/g, '');
   const resolvedLabel = label || title || '';
   const resolvedSupporting = supportingText || subtitle || '';
@@ -143,7 +149,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
 
   const getSparklineColor = () => {
     if (resolvedDirection === 'neutral') {
-      return '#7463A6';
+      return settings.accentColor || '#7463A6';
     }
     return resolvedFavourable ? '#16A34A' : '#DC2626';
   };
@@ -153,6 +159,46 @@ export const KpiCard: React.FC<KpiCardProps> = ({
     sparklineData && sparklineData.length >= 2
       ? buildSmoothSparklinePaths(sparklineData, 88, 38)
       : null;
+
+  const formattedDisplayValue = React.useMemo(() => {
+    if (typeof value === 'number') {
+      return numberFormat === 'compact'
+        ? formatCompactNumber(value)
+        : value.toLocaleString('en-US');
+    }
+    const strVal = String(value).trim();
+    if (numberFormat === 'full') {
+      if (fullValueTooltip && fullValueTooltip.trim()) {
+        return fullValueTooltip;
+      }
+      // Expand compact strings like "₦1.25M" or "99K" if no tooltip was passed
+      const compactMatch = strVal.match(/^(-?[^\d\s.-]*)([\d,.]+)([KMB])$/i);
+      if (compactMatch) {
+        const prefix = compactMatch[1] || '';
+        const numPart = parseFloat(compactMatch[2].replace(/,/g, ''));
+        const suffix = compactMatch[3].toUpperCase();
+        const mult = suffix === 'B' ? 1_000_000_000 : suffix === 'M' ? 1_000_000 : 1_000;
+        if (!isNaN(numPart)) {
+          return `${prefix}${Math.round(numPart * mult).toLocaleString('en-US')}`;
+        }
+      }
+      return strVal;
+    } else {
+      // Compact mode: if full currency or plain number string >= 1,000 is passed, compact it
+      const fullNumMatch = strVal.match(/^(-?[^\d\s.%/-]*)([\d,]+(?:\.\d+)?)$/);
+      if (fullNumMatch) {
+        const prefix = fullNumMatch[1] || '';
+        const rawNum = parseFloat(fullNumMatch[2].replace(/,/g, ''));
+        if (!isNaN(rawNum) && Math.abs(rawNum) >= 1000) {
+          if (prefix) {
+            return formatCompactCurrency(rawNum, prefix);
+          }
+          return formatCompactNumber(rawNum);
+        }
+      }
+      return strVal;
+    }
+  }, [value, fullValueTooltip, numberFormat, currencySymbol]);
 
   return (
     <div
@@ -173,7 +219,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       <div className="bg-white rounded-[11.5px] px-3.5 py-3 min-h-[76px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex items-center justify-between gap-3 flex-1">
         <div className="min-w-0 flex-1">
           <div className="text-[23px] sm:text-[25px] leading-tight font-medium text-[#1E1E1E] tabular-nums tracking-tight truncate">
-            {value}
+            {formattedDisplayValue}
           </div>
 
           {(resolvedTrendText || resolvedSupporting) && (

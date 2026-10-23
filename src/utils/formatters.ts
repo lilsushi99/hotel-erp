@@ -34,10 +34,37 @@ export function formatCompactNumber(num: number): string {
   if (abs >= 1_000_000) {
     return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   }
-  if (abs >= 10_000) {
+  if (abs >= 1_000) {
     return `${(num / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
   }
   return num.toLocaleString('en-US');
+}
+
+export function getExpenseDepartment(exp: { category: string; department?: string; description?: string }): string {
+  if (exp.department && exp.department.trim()) {
+    return exp.department;
+  }
+  const cat = (exp.category || '').toLowerCase();
+  const desc = (exp.description || '').toLowerCase();
+  if (cat.includes('kitchen') || cat.includes('f&b')) {
+    if (desc.includes('wine') || desc.includes('spirit') || desc.includes('bar') || desc.includes('champagne')) {
+      return 'Bar';
+    }
+    return 'Restaurant';
+  }
+  if (cat.includes('housekeeping') || cat.includes('laundry')) {
+    if (desc.includes('laundry') || desc.includes('detergent') || desc.includes('dry clean')) {
+      return 'Laundry';
+    }
+    return 'Housekeeping/Cleaning';
+  }
+  if (cat.includes('maintenance') || cat.includes('utilities') || cat.includes('power')) {
+    return 'Maintenance';
+  }
+  if (cat.includes('room')) {
+    return 'Rooms';
+  }
+  return 'Administration';
 }
 
 export function formatDateReadable(dateStr: string): string {

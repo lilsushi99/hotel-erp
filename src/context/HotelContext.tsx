@@ -81,6 +81,8 @@ interface HotelContextValue {
   laundryOrders: LaundryOrder[];
   expenses: Expense[];
   staff: StaffMember[];
+  currentUser: StaffMember;
+  setCurrentUserId: (id: string) => void;
   rolePermissions: RolePermissionConfig[];
   staffActivity: StaffActivityLog[];
   settings: HotelSettings;
@@ -224,16 +226,22 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
   const [expenses, setExpenses] = useState<Expense[]>(() => loadState('expenses', INITIAL_EXPENSES));
   const [staff, setStaff] = useState<StaffMember[]>(() => loadState('staff', INITIAL_STAFF));
+  const [currentUserId, setCurrentUserId] = useState<string>(() => loadState('currentUserId', INITIAL_STAFF[0].id));
   const [rolePermissions, setRolePermissions] = useState<RolePermissionConfig[]>(() =>
     loadState('rolePermissions', INITIAL_ROLE_PERMISSIONS)
   );
   const [staffActivity, setStaffActivity] = useState<StaffActivityLog[]>(() =>
     loadState('staffActivity', INITIAL_STAFF_ACTIVITY)
   );
-  const [settings, setSettings] = useState<HotelSettings>(() => loadState('settings', INITIAL_SETTINGS));
+  const [settings, setSettings] = useState<HotelSettings>(() => ({
+    ...INITIAL_SETTINGS,
+    ...loadState('settings', INITIAL_SETTINGS),
+  }));
   const [optionalModules, setOptionalModules] = useState<OptionalModule[]>(() =>
     loadState('optionalModules', INITIAL_OPTIONAL_MODULES)
   );
+
+  const currentUser = staff.find((s) => s.id === currentUserId) || staff[0] || INITIAL_STAFF[0];
 
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
 
@@ -253,6 +261,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         laundryOrders,
         expenses,
         staff,
+        currentUserId,
         rolePermissions,
         staffActivity,
         settings,
@@ -276,6 +285,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     laundryOrders,
     expenses,
     staff,
+    currentUserId,
     rolePermissions,
     staffActivity,
     settings,
@@ -286,11 +296,31 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     (title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
       const id = `TST-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       setToasts((prev) => [...prev, { id, title, message, type }]);
+      if (settings.soundNotificationsEnabled) {
+        try {
+          const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          if (AudioCtx) {
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(type === 'error' ? 440 : 660, ctx.currentTime);
+            gain.gain.setValueAtTime(0.06, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.18);
+          }
+        } catch {
+          // Ignore audio errors
+        }
+      }
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, 4000);
     },
-    []
+    [settings.soundNotificationsEnabled]
   );
 
   const dismissToast = useCallback((id: string) => {
@@ -298,7 +328,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const logActivity = useCallback(
-    (action: string, module: string, staffName = 'Adaeze Okafor-Vance', role: StaffRole = 'Administrator') => {
+    (action: string, module: string, staffName?: string, role?: StaffRole) => {
       const now = new Date();
       const timeStr = `${TODAY_STR} ${String(now.getHours()).padStart(2, '0')}:${String(
         now.getMinutes()
@@ -306,8 +336,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setStaffActivity((prev) => [
         {
           id: `ACT-${Date.now()}`,
-          staffName,
-          role,
+          staffName: staffName || currentUser.name,
+          role: role || currentUser.role,
           action,
           module,
           timestamp: timeStr,
@@ -315,7 +345,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...prev.slice(0, 29),
       ]);
     },
-    []
+    [currentUser.name, currentUser.role]
   );
 
   // ---------------- BOOKINGS ----------------
@@ -1317,6 +1347,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         laundryOrders,
         expenses,
         staff,
+        currentUser,
+        setCurrentUserId,
         rolePermissions,
         staffActivity,
         settings,

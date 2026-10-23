@@ -304,6 +304,22 @@ export interface OperationalAlertItem {
   path: string;
 }
 
+function computeAccentPalette(rawHex?: string) {
+  const clean = (rawHex || '#7463A6').trim();
+  const isValid = /^#[0-9A-Fa-f]{6}$/.test(clean);
+  const hex = isValid ? clean : '#7463A6';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  const toHex = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+  const hoverHex = `#${toHex(r * 0.85)}${toHex(g * 0.85)}${toHex(b * 0.85)}`;
+  const softHex = `#${toHex(r * 0.1 + 255 * 0.9)}${toHex(g * 0.1 + 255 * 0.9)}${toHex(b * 0.1 + 255 * 0.9)}`;
+  const borderHex = `#${toHex(r * 0.28 + 255 * 0.72)}${toHex(g * 0.28 + 255 * 0.72)}${toHex(b * 0.28 + 255 * 0.72)}`;
+
+  return { hex, hoverHex, softHex, borderHex, rgb: `${r}, ${g}, ${b}` };
+}
+
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -324,6 +340,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     guests,
     rooms,
     roomTypes,
+    staff,
+    currentUser,
+    setCurrentUserId,
   } = useHotel();
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -340,6 +359,11 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  const accentPalette = useMemo(
+    () => computeAccentPalette(settings.accentColor),
+    [settings.accentColor]
+  );
 
   useEffect(() => {
     const handleOpenAlerts = () => {
@@ -379,29 +403,41 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     })).filter((group) => group.items.length > 0);
   }, [optionalModules]);
 
-  // Consolidated live operational alerts list (including unpaid bookings, unpaid POS, unpaid Restaurant, low stock, >3-day uncollected laundry, expenses)
+  // Consolidated live operational alerts list respecting HotelSettings notification toggles
   const allAlertItems = useMemo<OperationalAlertItem[]>(() => {
     const list: OperationalAlertItem[] = [];
+    const allowOverduePayments = settings.overduePaymentAlertEnabled !== false;
+    const allowBookingsAlert = allowOverduePayments && settings.alertUnpaidBookings !== false;
+    const allowBarPosAlert = allowOverduePayments && settings.alertUnpaidBarPos !== false;
+    const allowRestaurantAlert = allowOverduePayments && settings.alertUnpaidRestaurant !== false;
+    const allowLaundryUnpaidAlert = allowOverduePayments && settings.alertUnpaidLaundry !== false;
+    const allowUncollectedLaundryAlert = settings.uncollectedLaundryAlertEnabled !== false;
+    const uncollectedThresholdDays = settings.uncollectedLaundryThresholdDays ?? 3;
+    const allowLowStock = settings.lowStockNotificationEnabled !== false;
+    const allowBevFoodLowStock = allowLowStock && settings.lowStockBeveragesFoodEnabled !== false;
+    const allowStoreKeeperLowStock = allowLowStock && settings.lowStockStoreKeeperEnabled !== false;
 
     if (isModuleEnabled('MOD-HOTEL-OPS')) {
-      bookings
-        .filter(
-          (b) =>
-            (selectedBranchId === 'ALL' || b.branchId === selectedBranchId) &&
-            b.bookingStatus !== 'Cancelled' &&
-            b.paymentStatus !== 'Paid'
-        )
-        .forEach((b) => {
-          const bal = Math.max(0, b.totalAmount - b.amountPaid);
-          list.push({
-            id: `ALT-BKG-${b.id}`,
-            title: `Unpaid Booking (${b.id})`,
-            detail: `${b.guestName} · Room ${b.roomNumber} · ${formatCurrency(bal > 0 ? bal : b.totalAmount, settings.currencySymbol)} unpaid`,
-            severity: b.bookingStatus === 'Checked In' ? 'High' : 'Medium',
-            category: 'Bookings',
-            path: '/bookings',
+      if (allowBookingsAlert) {
+        bookings
+          .filter(
+            (b) =>
+              (selectedBranchId === 'ALL' || b.branchId === selectedBranchId) &&
+              b.bookingStatus !== 'Cancelled' &&
+              b.paymentStatus !== 'Paid'
+          )
+          .forEach((b) => {
+            const bal = Math.max(0, b.totalAmount - b.amountPaid);
+            list.push({
+              id: `ALT-BKG-${b.id}`,
+              title: `Unpaid Booking (${b.id})`,
+              detail: `${b.guestName} · Room ${b.roomNumber} · ${formatCurrency(bal > 0 ? bal : b.totalAmount, settings.currencySymbol)} unpaid`,
+              severity: b.bookingStatus === 'Checked In' ? 'High' : 'Medium',
+              category: 'Bookings',
+              path: '/bookings',
+            });
           });
-        });
+      }
 
       rooms
         .filter(
@@ -428,8 +464,12 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
           tx.paymentStatus !== 'Paid'
       )
       .forEach((tx) => {
-        if (tx.department === 'Bar & POS' && !isModuleEnabled('MOD-BAR-POS')) return;
-        if (tx.department === 'Kitchen & Restaurant' && !isModuleEnabled('MOD-KITCHEN-RES')) return;
+        if (tx.department === 'Bar & POS') {
+          if (!isModuleEnabled('MOD-BAR-POS') || !allowBarPosAlert) return;
+        }
+        if (tx.department === 'Kitchen & Restaurant') {
+          if (!isModuleEnabled('MOD-KITCHEN-RES') || !allowRestaurantAlert) return;
+        }
         const unpaidAmt = Math.max(0, tx.totalAmount - tx.amountPaid);
         list.push({
           id: `ALT-POS-${tx.id}`,
@@ -441,7 +481,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         });
       });
 
-    if (isModuleEnabled('MOD-BAR-POS')) {
+    if (isModuleEnabled('MOD-BAR-POS') && allowBevFoodLowStock) {
       beverages
         .filter(
           (b) =>
@@ -460,7 +500,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         });
     }
 
-    if (isModuleEnabled('MOD-KITCHEN-RES')) {
+    if (isModuleEnabled('MOD-KITCHEN-RES') && allowBevFoodLowStock) {
       foodIngredients
         .filter(
           (f) =>
@@ -479,22 +519,24 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         });
     }
 
-    supplies
-      .filter(
-        (s) =>
-          (selectedBranchId === 'ALL' || s.branchId === selectedBranchId) &&
-          getInventoryHealthStatus(s.availableQuantity, s.reorderLevel) !== 'In Stock'
-      )
-      .forEach((s) => {
-        list.push({
-          id: `ALT-SUP-${s.id}`,
-          title: `Low Supply: ${s.name}`,
-          detail: `${s.availableQuantity} ${s.unit} remaining in ${s.category}`,
-          severity: 'Medium',
-          category: 'Store Keeper',
-          path: '/inventory/supplies',
+    if (allowStoreKeeperLowStock) {
+      supplies
+        .filter(
+          (s) =>
+            (selectedBranchId === 'ALL' || s.branchId === selectedBranchId) &&
+            getInventoryHealthStatus(s.availableQuantity, s.reorderLevel) !== 'In Stock'
+        )
+        .forEach((s) => {
+          list.push({
+            id: `ALT-SUP-${s.id}`,
+            title: `Low Supply: ${s.name}`,
+            detail: `${s.availableQuantity} ${s.unit} remaining in ${s.category}`,
+            severity: 'Medium',
+            category: 'Store Keeper',
+            path: '/inventory/supplies',
+          });
         });
-      });
+    }
 
     if (isModuleEnabled('MOD-LAUNDRY')) {
       laundryOrders
@@ -510,18 +552,26 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
           const daysWaiting = Math.round(
             (d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)
           );
-          const isOverdue3Days =
-            o.workflowStatus === 'Ready for Collection' && daysWaiting > 3;
+          const isOverdueCollection =
+            o.workflowStatus === 'Ready for Collection' &&
+            daysWaiting >= uncollectedThresholdDays;
+
+          if (o.workflowStatus === 'Ready for Collection' && !allowUncollectedLaundryAlert && o.paymentStatus === 'Paid') {
+            return;
+          }
+          if (o.workflowStatus !== 'Ready for Collection' && o.paymentStatus !== 'Paid' && !allowLaundryUnpaidAlert) {
+            return;
+          }
 
           list.push({
             id: `ALT-LND-${o.id}`,
-            title: isOverdue3Days
-              ? `Uncollected >3 Days (${o.id}) — ${daysWaiting}d in Storage`
+            title: isOverdueCollection
+              ? `Uncollected >${uncollectedThresholdDays} Days (${o.id}) — ${daysWaiting}d in Storage`
               : o.workflowStatus === 'Ready for Collection'
               ? `Laundry Awaiting Collection (${o.id})`
               : `Unpaid Laundry Order (${o.id})`,
             detail: `${o.customerName} · ${o.customerAddress || (o.roomNumber ? `Room ${o.roomNumber}` : 'Walk-in')} · Ready since ${refDate}`,
-            severity: isOverdue3Days
+            severity: isOverdueCollection
               ? 'High'
               : o.paymentStatus !== 'Paid'
               ? 'Medium'
@@ -535,23 +585,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         });
     }
 
-    expenses
-      .filter(
-        (e) =>
-          (selectedBranchId === 'ALL' || e.branchId === selectedBranchId) &&
-          e.status === 'Pending'
-      )
-      .forEach((e) => {
-        list.push({
-          id: `ALT-EXP-${e.id}`,
-          title: `Expense Pending Approval (${e.reference})`,
-          detail: `${e.description} · ${formatCurrency(e.amount, settings.currencySymbol)}`,
-          severity: 'Low',
-          category: 'Expenses',
-          path: '/finance/expenses',
-        });
-      });
-
     return list;
   }, [
     bookings,
@@ -561,10 +594,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     foodIngredients,
     supplies,
     laundryOrders,
-    expenses,
     selectedBranchId,
     optionalModules,
-    settings.currencySymbol,
+    settings,
   ]);
 
   const totalAlerts = allAlertItems.length;
@@ -801,9 +833,49 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const isRibCage = settings.sidebarStyle === 'ribcage';
+  const userInitials = currentUser.name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="min-h-screen flex bg-[#F7F7F7] text-[#111111]">
+      {/* Dynamic Accent Color Token Override */}
+      <style>{`
+        :root {
+          --accent-color: ${accentPalette.hex};
+          --accent-hover: ${accentPalette.hoverHex};
+          --accent-soft: ${accentPalette.softHex};
+          --accent-border: ${accentPalette.borderHex};
+        }
+        .bg-\\[\\#7463A6\\], .bg-\\[\\#7D53DE\\] {
+          background-color: var(--accent-color) !important;
+        }
+        .hover\\:bg-\\[\\#635394\\]:hover, .hover\\:bg-\\[\\#6942C6\\]:hover {
+          background-color: var(--accent-hover) !important;
+        }
+        .text-\\[\\#7463A6\\], .text-\\[\\#7D53DE\\] {
+          color: var(--accent-color) !important;
+        }
+        .border-\\[\\#7463A6\\], .border-\\[\\#7D53DE\\] {
+          border-color: var(--accent-color) !important;
+        }
+        .focus\\:border-\\[\\#7463A6\\]:focus {
+          border-color: var(--accent-color) !important;
+        }
+        .bg-\\[\\#F1EEF8\\], .bg-\\[\\#F3EEFF\\] {
+          background-color: var(--accent-soft) !important;
+        }
+        .hover\\:bg-\\[\\#F1EEF8\\]:hover {
+          background-color: var(--accent-soft) !important;
+        }
+        .border-\\[\\#D5CDEC\\] {
+          border-color: var(--accent-border) !important;
+        }
+      `}</style>
+
       {/* Mobile Sidebar Backdrop */}
       {mobileSidebarOpen && (
         <div
@@ -847,11 +919,12 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         {isRibCage ? (
           <nav className="flex-1 overflow-y-auto px-3.5 py-4 space-y-3">
             {visibleNavGroups.map((group) => {
-              const hasActiveChild = group.items.some(
+              const activeChildIndex = group.items.findIndex(
                 (item) =>
                   location.pathname === item.path ||
                   (item.path === '/overview' && location.pathname === '/')
               );
+              const hasActiveChild = activeChildIndex !== -1;
 
               if (group.label === 'Command Center' && group.items.length === 1) {
                 const item = group.items[0];
@@ -882,19 +955,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
 
               return (
                 <div key={group.label} className="space-y-1">
-                  {/* Parent Header */}
+                  {/* Parent Header — Clean category name without folder/box icon */}
                   <div
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-[11px] text-[12.5px] transition-all select-none ${
+                    className={`flex items-center px-3 py-1.5 rounded-[11px] text-[12.5px] transition-all select-none ${
                       hasActiveChild
                         ? 'bg-white border-[1.5px] border-[#E2E2DC] shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] text-[#1E1E1E] font-medium'
                         : 'text-[#6E6E6A] font-normal'
                     }`}
                   >
-                    <Folder
-                      className={`w-3.5 h-3.5 shrink-0 ${
-                        hasActiveChild ? 'text-[#4A4A46]' : 'text-[#8E8E88]'
-                      }`}
-                    />
                     <span className="truncate">{group.label}</span>
                   </div>
 
@@ -904,16 +972,42 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
                       const Icon = item.icon;
                       const isActive = location.pathname === item.path;
                       const isLast = idx === group.items.length - 1;
+                      const isBeforeActive =
+                        hasActiveChild && idx < activeChildIndex;
 
                       return (
                         <div key={item.path} className="relative flex items-center">
-                          {/* Vertical spine segment */}
-                          <span
-                            className="pointer-events-none absolute -left-2.5 top-0 w-[1.5px] bg-[#DCDCD4]"
-                            style={{ height: isLast ? '50%' : '100%' }}
-                          />
+                          {/* Vertical spine segment — accent-colored along path leading to active child */}
+                          {isActive ? (
+                            <>
+                              <span
+                                className="pointer-events-none absolute -left-2.5 top-0 w-[1.5px] bg-[#7463A6] z-10"
+                                style={{ height: '50%' }}
+                              />
+                              {!isLast && (
+                                <span
+                                  className="pointer-events-none absolute -left-2.5 top-1/2 w-[1.5px] bg-[#DCDCD4]"
+                                  style={{ height: '50%' }}
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <span
+                              className={`pointer-events-none absolute -left-2.5 top-0 w-[1.5px] ${
+                                isBeforeActive ? 'bg-[#7463A6] z-10' : 'bg-[#DCDCD4]'
+                              }`}
+                              style={{ height: isLast ? '50%' : '100%' }}
+                            />
+                          )}
+
                           {/* Curved rib connector */}
-                          <span className="pointer-events-none absolute -left-2.5 top-0 w-2.5 h-1/2 border-l-[1.5px] border-b-[1.5px] border-[#DCDCD4] rounded-bl-[7px]" />
+                          <span
+                            className={`pointer-events-none absolute -left-2.5 top-0 w-2.5 h-1/2 border-l-[1.5px] border-b-[1.5px] rounded-bl-[7px] ${
+                              isActive
+                                ? 'border-[#7463A6] z-10'
+                                : 'border-[#DCDCD4]'
+                            }`}
+                          />
 
                           <NavLink
                             to={item.path}
@@ -983,15 +1077,15 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         {/* Active Staff / Property Footer */}
         <div className="p-3.5 border-t border-[#F2F2F2] bg-[#FAFAFA]">
           <div className="flex items-center gap-3 px-2 py-1.5">
-            <div className="w-8 h-8 rounded-full bg-[#7463A6] text-white flex items-center justify-center text-[12px] font-semibold">
-              AD
+            <div className="w-8 h-8 rounded-full bg-[#7463A6] text-white flex items-center justify-center text-[12px] font-semibold shrink-0">
+              {userInitials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-semibold text-[#111111] truncate">
-                Adebayo Dosunmu
+              <p className="text-[12px] font-medium text-[#111111] truncate">
+                {currentUser.name}
               </p>
               <p className="text-[11px] text-[#6B7280] truncate">
-                General Manager · Super Admin
+                {currentUser.jobTitle || currentUser.role} · {currentUser.role}
               </p>
             </div>
           </div>
@@ -1218,7 +1312,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
               >
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80"
-                  alt="Adaeze Okafor-Vance"
+                  alt={currentUser.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -1227,14 +1321,51 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
               </button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-60 bg-white rounded-[14px] shadow-[0_12px_32px_rgba(0,0,0,0.11)] border border-[#E6E6E0] p-2 z-50 select-none">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-[14px] shadow-[0_12px_32px_rgba(0,0,0,0.11)] border border-[#E6E6E0] p-2 z-50 select-none">
                   <div className="px-3 py-2.5 border-b border-[#F0F0EC]">
                     <p className="text-[13px] font-medium text-[#1E1E1E] truncate">
-                      Adaeze Okafor-Vance
+                      {currentUser.name}
                     </p>
                     <p className="text-[11.5px] text-[#6E6E6A] truncate">
-                      Executive Director · Administrator
+                      {currentUser.jobTitle || currentUser.role} · {currentUser.role}
                     </p>
+                  </div>
+
+                  {/* Active Staff Account Switcher */}
+                  <div className="py-1.5 px-2 border-b border-[#F0F0EC]">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-[#8E8E88] px-1 mb-1">
+                      Active Account
+                    </p>
+                    <div className="space-y-0.5 max-h-36 overflow-y-auto">
+                      {staff.map((member) => {
+                        const isSelected = member.id === currentUser.id;
+                        return (
+                          <button
+                            key={member.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentUserId(member.id);
+                              setShowProfileMenu(false);
+                              notify(
+                                'Account Switched',
+                                `Logged in as ${member.name} (${member.jobTitle || member.role}).`,
+                                'info'
+                              );
+                            }}
+                            className={`w-full text-left px-2 py-1.5 rounded-[8px] flex items-center justify-between gap-2 text-[12px] transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#F1EEF8] text-[#7463A6] font-medium'
+                                : 'text-[#4A4A46] hover:bg-[#F5F5F2]'
+                            }`}
+                          >
+                            <span className="truncate">{member.name}</span>
+                            <span className="text-[10.5px] text-[#8E8E88] shrink-0">
+                              {member.jobTitle || member.role}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="py-1 space-y-0.5">

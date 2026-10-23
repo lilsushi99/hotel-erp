@@ -27,13 +27,14 @@ import { useHotel } from '../../context/HotelContext';
 import { KpiCard } from '../../components/ui/KpiCard';
 import {
   PageHeader,
-  SelectFilter,
   SecondaryButton,
   TableToolbar,
   SearchInput,
 } from '../../components/ui/PageControls';
+import { Dropdown } from '../../components/ui/Dropdown';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { CustomDateRangePicker } from '../../components/ui/CustomDatePicker';
+import { DateRangeControl } from '../../components/ui/CustomDatePicker';
+import { DateRangeFilter } from '../../types/hotel';
 import {
   formatCurrency,
   formatCompactCurrency,
@@ -41,6 +42,7 @@ import {
   isDateInRange,
   getPresetDateRange,
   exportToCsv,
+  getExpenseDepartment,
 } from '../../utils/formatters';
 
 const DEPT_COLORS = ['#7463A6', '#2563EB', '#0D9488', '#D97706'];
@@ -50,17 +52,19 @@ const PAYMENT_BAR_COLORS = [
   '#0D9488',
   '#D97706',
   '#4F46E5',
+  '#15803D',
+  '#DB2777',
 ];
 
 const DEFAULT_EXPENSE_COLORS: Record<string, string> = {
+  'Utilities & Power': '#7463A6',
   'Utilities & Diesel': '#7463A6',
-  'Staff Salaries & Welfare': '#2563EB',
-  'Food & Kitchen Supplies': '#0D9488',
-  'Beverage Restock': '#D97706',
-  'Maintenance & Repairs': '#DC2626',
-  'Housekeeping & Laundry Supplies': '#4F46E5',
-  'Marketing & Guest Experience': '#15803D',
-  'Administration & Permits': '#6B7280',
+  'Kitchen & F&B Procurement': '#0D9488',
+  'Maintenance & Repairs': '#D97706',
+  'Housekeeping & Laundry': '#285A84',
+  'IT & Subscriptions': '#4F46E5',
+  'Staff Welfare & Training': '#16A34A',
+  'Marketing & Guest Relations': '#DB2777',
 };
 
 const LEDGER_PAGE_SIZE = 10;
@@ -68,12 +72,7 @@ const LEDGER_PAGE_SIZE = 10;
 interface LedgerRow {
   id: string;
   date: string;
-  department:
-    | 'Rooms'
-    | 'Bar & POS'
-    | 'Kitchen & Restaurant'
-    | 'Laundry'
-    | 'Expense';
+  department: string;
   type: 'Revenue' | 'Expense';
   description: string;
   party: string;
@@ -81,6 +80,19 @@ interface LedgerRow {
   totalAmount: number;
   amountPaid: number;
   status: string;
+}
+
+function splitChartLabel(label: string): [string, string | null] {
+  const clean = (label || '').trim();
+  if (clean.length <= 14) return [clean, null];
+  if (clean.includes('/')) {
+    const [a, b] = clean.split('/');
+    return [`${a}/`, b || null];
+  }
+  const words = clean.split(/\s+/);
+  if (words.length <= 1) return [clean, null];
+  const mid = Math.ceil(words.length / 2);
+  return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
 }
 
 export const FinancialReportsPage: React.FC = () => {
@@ -93,30 +105,14 @@ export const FinancialReportsPage: React.FC = () => {
     settings,
   } = useHotel();
 
-  const [datePreset, setDatePreset] = useState<
-    'today' | 'week' | 'month' | 'custom'
-  >('month');
-  const [dateRange, setDateRange] = useState(() => {
-    const base = getPresetDateRange('month');
-    return { fromDate: base.startDate, toDate: '2026-10-31' };
-  });
+  const [dateFilter, setDateFilter] = useState<DateRangeFilter>(() =>
+    getPresetDateRange('month')
+  );
 
+  const [expenseGrouping, setExpenseGrouping] = useState<'category' | 'department'>('category');
   const [ledgerDeptFilter, setLedgerDeptFilter] = useState<string>('ALL');
-  const [ledgerTypeFilter, setLedgerTypeFilter] = useState<string>('ALL');
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-
-  const handleDatePresetChange = (value: string) => {
-    const preset = value as 'today' | 'week' | 'month' | 'custom';
-    setDatePreset(preset);
-    if (preset !== 'custom') {
-      const next = getPresetDateRange(preset);
-      setDateRange({
-        fromDate: next.startDate,
-        toDate: preset === 'month' ? '2026-10-31' : next.endDate,
-      });
-    }
-  };
 
   // Filtered datasets
   const fBookings = useMemo(
@@ -125,9 +121,9 @@ export const FinancialReportsPage: React.FC = () => {
         (b) =>
           b.bookingStatus !== 'Cancelled' &&
           (selectedBranchId === 'ALL' || b.branchId === selectedBranchId) &&
-          isDateInRange(b.checkInDate, dateRange.fromDate, dateRange.toDate)
+          isDateInRange(b.checkInDate, dateFilter)
       ),
-    [bookings, selectedBranchId, dateRange]
+    [bookings, selectedBranchId, dateFilter]
   );
 
   const fPos = useMemo(
@@ -135,9 +131,9 @@ export const FinancialReportsPage: React.FC = () => {
       posTransactions.filter(
         (t) =>
           (selectedBranchId === 'ALL' || t.branchId === selectedBranchId) &&
-          isDateInRange(t.date, dateRange.fromDate, dateRange.toDate)
+          isDateInRange(t.date, dateFilter)
       ),
-    [posTransactions, selectedBranchId, dateRange]
+    [posTransactions, selectedBranchId, dateFilter]
   );
 
   const fLaundry = useMemo(
@@ -145,9 +141,9 @@ export const FinancialReportsPage: React.FC = () => {
       laundryOrders.filter(
         (l) =>
           (selectedBranchId === 'ALL' || l.branchId === selectedBranchId) &&
-          isDateInRange(l.receivedDate, dateRange.fromDate, dateRange.toDate)
+          isDateInRange(l.receivedDate, dateFilter)
       ),
-    [laundryOrders, selectedBranchId, dateRange]
+    [laundryOrders, selectedBranchId, dateFilter]
   );
 
   const fExpenses = useMemo(
@@ -156,12 +152,12 @@ export const FinancialReportsPage: React.FC = () => {
         (e) =>
           e.status !== 'Rejected' &&
           (selectedBranchId === 'ALL' || e.branchId === selectedBranchId) &&
-          isDateInRange(e.date, dateRange.fromDate, dateRange.toDate)
+          isDateInRange(e.date, dateFilter)
       ),
-    [expenses, selectedBranchId, dateRange]
+    [expenses, selectedBranchId, dateFilter]
   );
 
-  // Departmental Revenue Totals
+  // Departmental Revenue Totals (without double-counting)
   const roomsRev = fBookings.reduce((s, b) => s + b.totalAmount, 0);
   const barRev = fPos
     .filter((t) => t.department === 'Bar & POS')
@@ -231,8 +227,8 @@ export const FinancialReportsPage: React.FC = () => {
     { name: 'Laundry', value: laundryRev },
   ];
 
-  // Chart 3: Expense by Category (using configured category colors)
-  const expenseByCategory = useMemo(() => {
+  // Chart 3: Expense by Category or Expense by Department
+  const expenseChartData = useMemo(() => {
     const colorMap: Record<string, string> = { ...DEFAULT_EXPENSE_COLORS };
     (settings.expenseCategoryConfigs || []).forEach((c) => {
       colorMap[c.name] = c.color;
@@ -240,7 +236,9 @@ export const FinancialReportsPage: React.FC = () => {
 
     const map: Record<string, number> = {};
     fExpenses.forEach((e) => {
-      map[e.category] = (map[e.category] || 0) + e.amount;
+      const key =
+        expenseGrouping === 'department' ? getExpenseDepartment(e) : e.category;
+      map[key] = (map[key] || 0) + e.amount;
     });
     return Object.entries(map)
       .map(([name, value], idx) => ({
@@ -251,7 +249,7 @@ export const FinancialReportsPage: React.FC = () => {
           PAYMENT_BAR_COLORS[idx % PAYMENT_BAR_COLORS.length],
       }))
       .sort((a, b) => b.value - a.value);
-  }, [fExpenses, settings.expenseCategoryConfigs]);
+  }, [fExpenses, settings.expenseCategoryConfigs, expenseGrouping]);
 
   // Chart 4: Revenue by Payment Method
   const revenueByPaymentMethod = useMemo(() => {
@@ -274,7 +272,7 @@ export const FinancialReportsPage: React.FC = () => {
       .sort((a, b) => b.amount - a.amount);
   }, [fBookings, fPos, fLaundry]);
 
-  // Consolidated Financial Ledger
+  // Financial Transaction Ledger
   const consolidatedLedger: LedgerRow[] = useMemo(() => {
     const rows: LedgerRow[] = [];
 
@@ -328,17 +326,18 @@ export const FinancialReportsPage: React.FC = () => {
     });
 
     fExpenses.forEach((e) => {
+      const expDept = getExpenseDepartment(e);
       rows.push({
         id: e.reference,
         date: e.date,
-        department: 'Expense',
+        department: expDept,
         type: 'Expense',
         description: `${e.category}: ${e.description}`,
         party: e.responsibleStaff,
         paymentMethod: e.paymentMethod,
         totalAmount: e.amount,
-        amountPaid: e.status === 'Approved' ? e.amount : 0,
-        status: e.status,
+        amountPaid: e.amount,
+        status: 'Approved',
       });
     });
 
@@ -347,32 +346,37 @@ export const FinancialReportsPage: React.FC = () => {
 
   const filteredLedger = useMemo(() => {
     return consolidatedLedger.filter((r) => {
-      if (ledgerDeptFilter !== 'ALL' && r.department !== ledgerDeptFilter)
-        return false;
-      if (ledgerTypeFilter !== 'ALL' && r.type !== ledgerTypeFilter)
-        return false;
+      if (ledgerDeptFilter !== 'ALL') {
+        const matchesExact = r.department === ledgerDeptFilter;
+        const matchesBarAlias =
+          ledgerDeptFilter === 'Bar & POS' && r.department === 'Bar';
+        const matchesResAlias =
+          ledgerDeptFilter === 'Kitchen & Restaurant' &&
+          r.department === 'Restaurant';
+        if (!matchesExact && !matchesBarAlias && !matchesResAlias) return false;
+      }
       if (ledgerSearch.trim()) {
         const q = ledgerSearch.toLowerCase();
         if (
           !r.id.toLowerCase().includes(q) &&
           !r.description.toLowerCase().includes(q) &&
-          !r.party.toLowerCase().includes(q)
+          !r.party.toLowerCase().includes(q) &&
+          !r.department.toLowerCase().includes(q)
         ) {
           return false;
         }
       }
       return true;
     });
-  }, [consolidatedLedger, ledgerDeptFilter, ledgerTypeFilter, ledgerSearch]);
+  }, [consolidatedLedger, ledgerDeptFilter, ledgerSearch]);
 
   // Reset pagination to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [
     ledgerDeptFilter,
-    ledgerTypeFilter,
     ledgerSearch,
-    dateRange,
+    dateFilter,
     selectedBranchId,
   ]);
 
@@ -410,25 +414,7 @@ export const FinancialReportsPage: React.FC = () => {
         title="Financial Reports"
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
-            <SelectFilter
-              value={datePreset}
-              onChange={handleDatePresetChange}
-              options={[
-                { value: 'today', label: 'Today' },
-                { value: 'week', label: 'Last 7 Days' },
-                { value: 'month', label: 'This Month' },
-                { value: 'custom', label: 'Custom Range' },
-              ]}
-            />
-            {datePreset === 'custom' && (
-              <CustomDateRangePicker
-                fromDate={dateRange.fromDate}
-                toDate={dateRange.toDate}
-                onChange={(fromDate, toDate) =>
-                  setDateRange({ fromDate, toDate })
-                }
-              />
-            )}
+            <DateRangeControl value={dateFilter} onChange={setDateFilter} />
             <SecondaryButton onClick={handleExportReport}>
               <Download className="w-4 h-4" />
               Export CSV Report
@@ -437,7 +423,7 @@ export const FinancialReportsPage: React.FC = () => {
         }
       />
 
-      {/* 4 KPI Cards — Overview height standard, no supporting text */}
+      {/* 4 KPI Cards — Overview height standard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           label="Total Revenue"
@@ -466,16 +452,16 @@ export const FinancialReportsPage: React.FC = () => {
       </div>
 
       {/* Charts Grid Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue vs Expense Trend */}
-        <div className="lg:col-span-2 bg-[#F0F0F0] p-1 rounded-[20px]">
-          <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
-            <div className="mb-4">
-              <h3 className="text-[15px] font-bold text-[#111111]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        {/* Revenue vs Expense Trend — balanced outer & inner container padding */}
+        <div className="lg:col-span-2 bg-[#F0F0F0] p-1 rounded-[20px] flex flex-col">
+          <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 flex flex-col justify-between flex-1">
+            <div className="mb-3">
+              <h3 className="text-[15px] font-semibold text-[#111111]">
                 Revenue vs Expense Trends
               </h3>
             </div>
-            <div className="h-72">
+            <div className="flex-1 min-h-[268px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={dailyFinancialSeries}
@@ -516,7 +502,7 @@ export const FinancialReportsPage: React.FC = () => {
                   />
                   <Legend
                     iconType="circle"
-                    wrapperStyle={{ fontSize: '12px' }}
+                    wrapperStyle={{ fontSize: '12px', paddingTop: '6px' }}
                   />
                   <Area
                     type="monotone"
@@ -541,14 +527,14 @@ export const FinancialReportsPage: React.FC = () => {
         </div>
 
         {/* Revenue by Department */}
-        <div className="bg-[#F0F0F0] p-1 rounded-[20px]">
-          <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 flex flex-col justify-between h-full">
+        <div className="bg-[#F0F0F0] p-1 rounded-[20px] flex flex-col">
+          <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 flex flex-col justify-between flex-1">
             <div>
-              <h3 className="text-[15px] font-bold text-[#111111]">
+              <h3 className="text-[15px] font-semibold text-[#111111]">
                 Revenue by Department
               </h3>
             </div>
-            <div className="h-52 my-2">
+            <div className="h-48 my-2">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -558,7 +544,7 @@ export const FinancialReportsPage: React.FC = () => {
                     cx="50%"
                     cy="50%"
                     innerRadius={48}
-                    outerRadius={76}
+                    outerRadius={74}
                     paddingAngle={3}
                   >
                     {deptBreakdown.map((_, idx) => (
@@ -600,12 +586,12 @@ export const FinancialReportsPage: React.FC = () => {
                         className="w-2.5 h-2.5 rounded-full"
                         style={{ backgroundColor: DEPT_COLORS[idx] }}
                       />
-                      <span className="font-medium text-[#374151]">
+                      <span className="font-normal text-[#374151]">
                         {d.name}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-[#111111] tabular-nums">
+                      <span className="font-medium text-[#111111] tabular-nums">
                         {formatCurrency(d.value, settings.currencySymbol)}
                       </span>
                       <span className="text-[11px] text-[#9CA3AF] w-8 text-right">
@@ -621,19 +607,34 @@ export const FinancialReportsPage: React.FC = () => {
       </div>
 
       {/* Charts Grid Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Expense by Category */}
-        <div className="bg-[#F0F0F0] p-1 rounded-[20px]">
-          <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
-            <h3 className="text-[15px] font-bold text-[#111111] mb-4">
-              Expense by Category
-            </h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        {/* Expense by Category / Expense by Department */}
+        <div className="bg-[#F0F0F0] p-1 rounded-[20px] flex flex-col">
+          <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 flex flex-col justify-between flex-1">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h3 className="text-[15px] font-semibold text-[#111111] whitespace-nowrap">
+                {expenseGrouping === 'department'
+                  ? 'Expense by Department'
+                  : 'Expense by Category'}
+              </h3>
+              <Dropdown
+                value={expenseGrouping}
+                onChange={(val) =>
+                  setExpenseGrouping(val as 'category' | 'department')
+                }
+                options={[
+                  { value: 'category', label: 'Expense by Category' },
+                  { value: 'department', label: 'Expense by Department' },
+                ]}
+                className="w-52 shrink-0"
+              />
+            </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={expenseByCategory}
+                  data={expenseChartData}
                   layout="vertical"
-                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  margin={{ top: 5, right: 20, left: 4, bottom: 5 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -652,20 +653,37 @@ export const FinancialReportsPage: React.FC = () => {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={190}
-                    tick={({ y, payload }) => (
-                      <text
-                        x={10}
-                        y={y}
-                        dy={4}
-                        textAnchor="start"
-                        fill="#374151"
-                        fontSize={12}
-                        fontWeight={500}
-                      >
-                        {payload.value}
-                      </text>
-                    )}
+                    width={122}
+                    tick={({ y, payload }) => {
+                      const [line1, line2] = splitChartLabel(
+                        String(payload.value || '')
+                      );
+                      return (
+                        <text
+                          x={4}
+                          y={y}
+                          textAnchor="start"
+                          fill="#374151"
+                          fontSize={11.5}
+                          fontWeight={400}
+                        >
+                          {line2 ? (
+                            <>
+                              <tspan x={4} dy="-0.3em">
+                                {line1}
+                              </tspan>
+                              <tspan x={4} dy="1.15em">
+                                {line2}
+                              </tspan>
+                            </>
+                          ) : (
+                            <tspan x={4} dy="0.32em">
+                              {line1}
+                            </tspan>
+                          )}
+                        </text>
+                      );
+                    }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -684,7 +702,7 @@ export const FinancialReportsPage: React.FC = () => {
                     }}
                   />
                   <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={20}>
-                    {expenseByCategory.map((entry, index) => (
+                    {expenseChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Bar>
@@ -695,9 +713,9 @@ export const FinancialReportsPage: React.FC = () => {
         </div>
 
         {/* Revenue by Payment Method */}
-        <div className="bg-[#F0F0F0] p-1 rounded-[20px]">
-          <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
-            <h3 className="text-[15px] font-bold text-[#111111] mb-4">
+        <div className="bg-[#F0F0F0] p-1 rounded-[20px] flex flex-col">
+          <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 flex flex-col justify-between flex-1">
+            <h3 className="text-[15px] font-semibold text-[#111111] mb-4">
               Revenue by Payment Method
             </h3>
             <div className="h-72">
@@ -751,14 +769,14 @@ export const FinancialReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Consolidated Financial Transaction Ledger with 10-Row Pagination */}
+      {/* Financial Transaction Ledger with 10-Row Pagination */}
       <div className="bg-[#F0F0F0] p-1 rounded-[20px]">
         <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="px-5 pt-5 pb-2 flex items-center justify-between">
-            <h3 className="text-[15px] font-bold text-[#111111]">
-              Consolidated Financial Transaction Ledger
+            <h3 className="text-[15px] font-semibold text-[#111111]">
+              Financial Transaction Ledger
             </h3>
-            <span className="text-[12px] font-medium text-[#6B7280]">
+            <span className="text-[12px] font-normal text-[#6B7280]">
               {filteredLedger.length} transactions
             </span>
           </div>
@@ -772,34 +790,27 @@ export const FinancialReportsPage: React.FC = () => {
               />
             }
             right={
-              <>
-                <SelectFilter
-                  label="Department"
-                  value={ledgerDeptFilter}
-                  onChange={setLedgerDeptFilter}
-                  options={[
-                    { value: 'ALL', label: 'All Departments' },
-                    { value: 'Rooms', label: 'Rooms' },
-                    { value: 'Bar & POS', label: 'Bar & POS' },
-                    {
-                      value: 'Kitchen & Restaurant',
-                      label: 'Kitchen & Restaurant',
-                    },
-                    { value: 'Laundry', label: 'Laundry' },
-                    { value: 'Expense', label: 'Operating Expenses' },
-                  ]}
-                />
-                <SelectFilter
-                  label="Entry Type"
-                  value={ledgerTypeFilter}
-                  onChange={setLedgerTypeFilter}
-                  options={[
-                    { value: 'ALL', label: 'All Entries' },
-                    { value: 'Revenue', label: 'Revenue Entries' },
-                    { value: 'Expense', label: 'Expense Entries' },
-                  ]}
-                />
-              </>
+              <Dropdown
+                value={ledgerDeptFilter}
+                onChange={setLedgerDeptFilter}
+                options={[
+                  { value: 'ALL', label: 'All Departments' },
+                  { value: 'Rooms', label: 'Rooms' },
+                  { value: 'Bar & POS', label: 'Bar & POS' },
+                  {
+                    value: 'Kitchen & Restaurant',
+                    label: 'Kitchen & Restaurant',
+                  },
+                  { value: 'Laundry', label: 'Laundry' },
+                  {
+                    value: 'Housekeeping/Cleaning',
+                    label: 'Housekeeping/Cleaning',
+                  },
+                  { value: 'Maintenance', label: 'Maintenance' },
+                  { value: 'Administration', label: 'Administration' },
+                ]}
+                className="w-56"
+              />
             }
           />
 
@@ -807,22 +818,28 @@ export const FinancialReportsPage: React.FC = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#EFEFEF] bg-[#FAFAFA]">
-                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
-                    Reference & Date
+                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                    Reference
                   </th>
-                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                    Date
+                  </th>
+                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                     Department
                   </th>
-                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
-                    Description & Counterparty
+                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                    Description
                   </th>
-                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
+                    Counterparty / Staff
+                  </th>
+                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                     Method
                   </th>
-                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] text-right">
+                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] text-right whitespace-nowrap">
                     Amount
                   </th>
-                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                     Status
                   </th>
                 </tr>
@@ -833,29 +850,25 @@ export const FinancialReportsPage: React.FC = () => {
                     key={`${row.id}-${idx}`}
                     className="hover:bg-[#FAFAFA] transition-colors"
                   >
-                    <td className="py-3 px-4">
-                      <p className="font-mono font-semibold text-[#111111] text-[12px]">
-                        {row.id}
-                      </p>
-                      <p className="text-[11px] text-[#6B7280]">
-                        {formatDate(row.date)}
-                      </p>
+                    <td className="py-3 px-4 font-mono font-normal text-[#111111] text-[12px] whitespace-nowrap">
+                      {row.id}
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-md bg-[#F3F4F6] text-[#374151] text-[11px] font-semibold">
-                        {row.department}
-                      </span>
+                    <td className="py-3 px-4 font-normal text-[#4B5563] whitespace-nowrap">
+                      {formatDate(row.date)}
                     </td>
-                    <td className="py-3 px-4">
-                      <p className="font-medium text-[#111111] truncate max-w-[280px]">
-                        {row.description}
-                      </p>
-                      <p className="text-[11px] text-[#6B7280]">{row.party}</p>
+                    <td className="py-3 px-4 font-normal text-[#374151] whitespace-nowrap">
+                      {row.department}
                     </td>
-                    <td className="py-3 px-4 text-[#374151] text-[12px]">
+                    <td className="py-3 px-4 font-normal text-[#111111] whitespace-nowrap">
+                      {row.description}
+                    </td>
+                    <td className="py-3 px-4 font-normal text-[#4B5563] whitespace-nowrap">
+                      {row.party}
+                    </td>
+                    <td className="py-3 px-4 font-normal text-[#374151] text-[12.5px] whitespace-nowrap">
                       {row.paymentMethod}
                     </td>
-                    <td className="py-3 px-4 text-right font-bold tabular-nums">
+                    <td className="py-3 px-4 text-right font-normal tabular-nums whitespace-nowrap">
                       <span
                         className={
                           row.type === 'Revenue'
@@ -870,7 +883,7 @@ export const FinancialReportsPage: React.FC = () => {
                         )}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <StatusBadge status={row.status} />
                     </td>
                   </tr>
@@ -884,18 +897,18 @@ export const FinancialReportsPage: React.FC = () => {
             <div className="px-5 py-3.5 border-t border-[#EFEFEF] bg-[#FAFAFA] flex flex-wrap items-center justify-between gap-3 text-[12px]">
               <span className="text-[#6B7280]">
                 Showing{' '}
-                <strong className="text-[#111111]">
+                <strong className="font-medium text-[#111111]">
                   {(safeCurrentPage - 1) * LEDGER_PAGE_SIZE + 1}
                 </strong>
                 –
-                <strong className="text-[#111111]">
+                <strong className="font-medium text-[#111111]">
                   {Math.min(
                     safeCurrentPage * LEDGER_PAGE_SIZE,
                     filteredLedger.length
                   )}
                 </strong>{' '}
                 of{' '}
-                <strong className="text-[#111111]">
+                <strong className="font-medium text-[#111111]">
                   {filteredLedger.length}
                 </strong>{' '}
                 entries
@@ -906,7 +919,7 @@ export const FinancialReportsPage: React.FC = () => {
                   type="button"
                   disabled={safeCurrentPage <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] border border-[#E5E7EB] bg-white text-[#374151] font-medium hover:bg-[#F3F4F6] disabled:opacity-40 disabled:pointer-events-none"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] border border-[#E5E7EB] bg-white text-[#374151] font-medium hover:bg-[#F3F4F6] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   Prev
@@ -917,7 +930,7 @@ export const FinancialReportsPage: React.FC = () => {
                       key={pageNum}
                       type="button"
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 rounded-[8px] font-semibold transition-colors ${
+                      className={`w-8 h-8 rounded-[8px] font-medium transition-colors cursor-pointer ${
                         pageNum === safeCurrentPage
                           ? 'bg-[#7463A6] text-white'
                           : 'bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6]'
@@ -933,7 +946,7 @@ export const FinancialReportsPage: React.FC = () => {
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] border border-[#E5E7EB] bg-white text-[#374151] font-medium hover:bg-[#F3F4F6] disabled:opacity-40 disabled:pointer-events-none"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] border border-[#E5E7EB] bg-white text-[#374151] font-medium hover:bg-[#F3F4F6] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                 >
                   Next
                   <ChevronRight className="w-3.5 h-3.5" />

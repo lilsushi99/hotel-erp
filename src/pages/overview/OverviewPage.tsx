@@ -484,65 +484,89 @@ export const OverviewPage: React.FC = () => {
       iconBgClass: string;
     }[] = [];
 
+    const lowStockBevFoodOn =
+      settings.lowStockNotificationEnabled !== false &&
+      settings.lowStockBeveragesFoodEnabled !== false;
+    const lowStockStoreOn =
+      settings.lowStockNotificationEnabled !== false &&
+      settings.lowStockStoreKeeperEnabled !== false;
+    const unpaidBookingsOn =
+      settings.overduePaymentAlertEnabled !== false &&
+      settings.alertUnpaidBookings !== false;
+    const unpaidBarOn =
+      settings.overduePaymentAlertEnabled !== false &&
+      settings.alertUnpaidBarPos !== false;
+    const unpaidRestOn =
+      settings.overduePaymentAlertEnabled !== false &&
+      settings.alertUnpaidRestaurant !== false;
+    const unpaidLaundryOn =
+      settings.overduePaymentAlertEnabled !== false &&
+      settings.alertUnpaidLaundry !== false;
+    const laundryReadyOn = settings.uncollectedLaundryAlertEnabled !== false;
+
     // 1. Out of stock & Low stock beverages
-    filterByBranch(beverages).forEach((b) => {
-      if (b.availableQuantity <= b.reorderThreshold) {
-        const isOut = b.availableQuantity === 0;
-        items.push({
-          id: `AL-BEV-${b.id}`,
-          category: 'Inventory',
-          title: b.name,
-          meta: `${b.availableQuantity} ${b.unit} left (Reorder at ${b.reorderThreshold})`,
-          status: isOut ? 'Out of Stock' : 'Low Stock',
-          badgeTone: isOut ? 'red' : 'amber',
-          path: '/inventory/beverages',
-          icon: AlertTriangle,
-          iconBgClass: isOut
-            ? 'bg-[#FEE2E2] text-[#DC2626]'
-            : 'bg-[#FEF3C7] text-[#D97706]',
-        });
-      }
-    });
+    if (lowStockBevFoodOn) {
+      filterByBranch(beverages).forEach((b) => {
+        if (b.availableQuantity <= b.reorderThreshold) {
+          const isOut = b.availableQuantity === 0;
+          items.push({
+            id: `AL-BEV-${b.id}`,
+            category: 'Inventory',
+            title: b.name,
+            meta: `${b.availableQuantity} ${b.unit} left (Reorder at ${b.reorderThreshold})`,
+            status: isOut ? 'Out of Stock' : 'Low Stock',
+            badgeTone: isOut ? 'red' : 'amber',
+            path: '/inventory/beverages',
+            icon: AlertTriangle,
+            iconBgClass: isOut
+              ? 'bg-[#FEE2E2] text-[#DC2626]'
+              : 'bg-[#FEF3C7] text-[#D97706]',
+          });
+        }
+      });
 
-    // 2. Low/Out of stock kitchen ingredients
-    filterByBranch(foodIngredients).forEach((f) => {
-      if (f.availableQuantity <= f.reorderLevel) {
-        const isOut = f.availableQuantity === 0;
-        items.push({
-          id: `AL-FD-${f.id}`,
-          category: 'Kitchen',
-          title: f.name,
-          meta: `${f.availableQuantity}${f.unit} remaining in ${f.storageLocation}`,
-          status: isOut ? 'Out of Stock' : 'Low Stock',
-          badgeTone: isOut ? 'red' : 'amber',
-          path: '/inventory/food',
-          icon: AlertTriangle,
-          iconBgClass: isOut
-            ? 'bg-[#FEE2E2] text-[#DC2626]'
-            : 'bg-[#FEF3C7] text-[#D97706]',
-        });
-      }
-    });
+      // 2. Low/Out of stock kitchen ingredients
+      filterByBranch(foodIngredients).forEach((f) => {
+        if (f.availableQuantity <= f.reorderLevel) {
+          const isOut = f.availableQuantity === 0;
+          items.push({
+            id: `AL-FD-${f.id}`,
+            category: 'Kitchen',
+            title: f.name,
+            meta: `${f.availableQuantity}${f.unit} remaining in ${f.storageLocation}`,
+            status: isOut ? 'Out of Stock' : 'Low Stock',
+            badgeTone: isOut ? 'red' : 'amber',
+            path: '/inventory/food',
+            icon: AlertTriangle,
+            iconBgClass: isOut
+              ? 'bg-[#FEE2E2] text-[#DC2626]'
+              : 'bg-[#FEF3C7] text-[#D97706]',
+          });
+        }
+      });
+    }
 
-    // 3. Low/Out of stock supplies
-    filterByBranch(supplies).forEach((s) => {
-      if (s.availableQuantity <= s.reorderLevel) {
-        const isOut = s.availableQuantity === 0;
-        items.push({
-          id: `AL-SUP-${s.id}`,
-          category: 'Supplies',
-          title: s.name,
-          meta: `${s.availableQuantity} ${s.unit} remaining`,
-          status: isOut ? 'Out of Stock' : 'Low Stock',
-          badgeTone: isOut ? 'red' : 'amber',
-          path: '/inventory/supplies',
-          icon: AlertTriangle,
-          iconBgClass: isOut
-            ? 'bg-[#FEE2E2] text-[#DC2626]'
-            : 'bg-[#FEF3C7] text-[#D97706]',
-        });
-      }
-    });
+    // 3. Low/Out of stock supplies (Store Keeper)
+    if (lowStockStoreOn) {
+      filterByBranch(supplies).forEach((s) => {
+        if (s.availableQuantity <= s.reorderLevel) {
+          const isOut = s.availableQuantity === 0;
+          items.push({
+            id: `AL-SUP-${s.id}`,
+            category: 'Supplies',
+            title: s.name,
+            meta: `${s.availableQuantity} ${s.unit} remaining`,
+            status: isOut ? 'Out of Stock' : 'Low Stock',
+            badgeTone: isOut ? 'red' : 'amber',
+            path: '/inventory/supplies',
+            icon: AlertTriangle,
+            iconBgClass: isOut
+              ? 'bg-[#FEE2E2] text-[#DC2626]'
+              : 'bg-[#FEF3C7] text-[#D97706]',
+          });
+        }
+      });
+    }
 
     // 4. Maintenance rooms
     filterByBranch(rooms).forEach((r) => {
@@ -562,28 +586,32 @@ export const OverviewPage: React.FC = () => {
     });
 
     // 5. Pending payments / Unpaid booking balances
-    filterByBranch(bookings).forEach((bk) => {
-      if (bk.bookingStatus !== 'Cancelled' && bk.paymentStatus !== 'Paid') {
-        items.push({
-          id: `AL-UNP-${bk.id}`,
-          category: 'Bookings',
-          title: `${bk.guestName} · Room ${bk.roomNumber}`,
-          meta: `${formatCurrency(
-            Math.max(0, bk.totalAmount - bk.amountPaid) || bk.totalAmount,
-            sym
-          )} unpaid on ${bk.id}`,
-          status: 'Unpaid',
-          badgeTone: 'red',
-          path: '/bookings',
-          icon: Receipt,
-          iconBgClass: 'bg-[#F1EEF8] text-[#7463A6]',
-        });
-      }
-    });
+    if (unpaidBookingsOn) {
+      filterByBranch(bookings).forEach((bk) => {
+        if (bk.bookingStatus !== 'Cancelled' && bk.paymentStatus !== 'Paid') {
+          items.push({
+            id: `AL-UNP-${bk.id}`,
+            category: 'Bookings',
+            title: `${bk.guestName} · Room ${bk.roomNumber}`,
+            meta: `${formatCurrency(
+              Math.max(0, bk.totalAmount - bk.amountPaid) || bk.totalAmount,
+              sym
+            )} unpaid on ${bk.id}`,
+            status: 'Unpaid',
+            badgeTone: 'red',
+            path: '/bookings',
+            icon: Receipt,
+            iconBgClass: 'bg-[#F1EEF8] text-[#7463A6]',
+          });
+        }
+      });
+    }
 
     // 6. Unpaid POS & Restaurant invoices
     filterByBranch(posTransactions).forEach((tx) => {
       if (tx.paymentStatus !== 'Paid') {
+        if (tx.department === 'Bar & POS' && !unpaidBarOn) return;
+        if (tx.department === 'Kitchen & Restaurant' && !unpaidRestOn) return;
         items.push({
           id: `AL-POS-${tx.id}`,
           category: tx.department,
@@ -604,22 +632,46 @@ export const OverviewPage: React.FC = () => {
       }
     });
 
-    // 7. Laundry ready for collection
-    filterByBranch(laundryOrders).forEach((l) => {
-      if (l.workflowStatus === 'Ready for Collection') {
-        items.push({
-          id: `AL-LND-${l.id}`,
-          category: 'Laundry Ready',
-          title: `${l.customerName} (${l.id})`,
-          meta: `${l.customerAddress || (l.roomNumber ? `Room ${l.roomNumber}` : 'Walk-in')} · Tag ${l.garmentTag}`,
-          status: 'Ready',
-          badgeTone: 'green',
-          path: '/laundry/storage',
-          icon: Shirt,
-          iconBgClass: 'bg-[#DCFCE7] text-[#16A34A]',
-        });
-      }
-    });
+    // 7. Unpaid Laundry orders
+    if (unpaidLaundryOn) {
+      filterByBranch(laundryOrders).forEach((l) => {
+        if (l.paymentStatus !== 'Paid') {
+          items.push({
+            id: `AL-LND-UNP-${l.id}`,
+            category: 'Laundry',
+            title: `${l.customerName} (${l.id})`,
+            meta: `${formatCurrency(
+              Math.max(0, l.totalAmount - l.amountPaid) || l.totalAmount,
+              sym
+            )} unpaid laundry bill`,
+            status: 'Unpaid',
+            badgeTone: 'red',
+            path: '/laundry/orders',
+            icon: Receipt,
+            iconBgClass: 'bg-[#FCECE9] text-[#DC2626]',
+          });
+        }
+      });
+    }
+
+    // 8. Laundry ready for collection
+    if (laundryReadyOn) {
+      filterByBranch(laundryOrders).forEach((l) => {
+        if (l.workflowStatus === 'Ready for Collection') {
+          items.push({
+            id: `AL-LND-${l.id}`,
+            category: 'Laundry Ready',
+            title: `${l.customerName} (${l.id})`,
+            meta: `${l.customerAddress || (l.roomNumber ? `Room ${l.roomNumber}` : 'Walk-in')} · Tag ${l.garmentTag}`,
+            status: 'Ready',
+            badgeTone: 'green',
+            path: '/laundry/storage',
+            icon: Shirt,
+            iconBgClass: 'bg-[#DCFCE7] text-[#16A34A]',
+          });
+        }
+      });
+    }
 
     return items.slice(0, 10);
   }, [
@@ -633,6 +685,7 @@ export const OverviewPage: React.FC = () => {
     selectedBranchId,
     sym,
     alertsRefreshTick,
+    settings,
   ]);
 
   const expenseCategoryOptions = useMemo(() => {

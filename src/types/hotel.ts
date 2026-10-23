@@ -271,6 +271,7 @@ export interface Expense {
   reference: string;
   description: string;
   category: string;
+  department?: string;
   branchId: string;
   amount: number;
   date: string;
@@ -338,11 +339,20 @@ export interface HotelSettings {
   defaultTaxRatePercent: number;
   lowStockNotificationEnabled: boolean;
   lowStockDefaultThreshold?: number;
+  lowStockBeveragesFoodEnabled?: boolean;
+  lowStockStoreKeeperEnabled?: boolean;
   overduePaymentAlertEnabled?: boolean;
   overduePaymentThresholdAmount?: number;
+  alertUnpaidBookings?: boolean;
+  alertUnpaidBarPos?: boolean;
+  alertUnpaidRestaurant?: boolean;
+  alertUnpaidLaundry?: boolean;
   uncollectedLaundryAlertEnabled?: boolean;
   uncollectedLaundryThresholdDays?: number;
   overdueCheckoutAlertMinutes: number;
+  soundNotificationsEnabled?: boolean;
+  numberFormat?: 'full' | 'compact';
+  accentColor?: string;
   paymentMethods: PaymentMethod[];
   expenseCategories: string[];
   expenseCategoryConfigs?: ExpenseCategoryConfig[];
