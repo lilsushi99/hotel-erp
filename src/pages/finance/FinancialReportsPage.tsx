@@ -114,6 +114,24 @@ export const FinancialReportsPage: React.FC = () => {
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
+  const primaryAccent = settings.accentColor || '#7463A6';
+  const deptColors = useMemo(
+    () => [primaryAccent, '#2563EB', '#0D9488', '#D97706'],
+    [primaryAccent]
+  );
+  const paymentBarColors = useMemo(
+    () => [
+      primaryAccent,
+      '#2563EB',
+      '#0D9488',
+      '#D97706',
+      '#4F46E5',
+      '#15803D',
+      '#DB2777',
+    ],
+    [primaryAccent]
+  );
+
   // Filtered datasets
   const fBookings = useMemo(
     () =>
@@ -246,10 +264,10 @@ export const FinancialReportsPage: React.FC = () => {
         value,
         color:
           colorMap[name] ||
-          PAYMENT_BAR_COLORS[idx % PAYMENT_BAR_COLORS.length],
+          paymentBarColors[idx % paymentBarColors.length],
       }))
       .sort((a, b) => b.value - a.value);
-  }, [fExpenses, settings.expenseCategoryConfigs, expenseGrouping]);
+  }, [fExpenses, settings.expenseCategoryConfigs, expenseGrouping, paymentBarColors]);
 
   // Chart 4: Revenue by Payment Method
   const revenueByPaymentMethod = useMemo(() => {
@@ -267,10 +285,10 @@ export const FinancialReportsPage: React.FC = () => {
       .map(([method, amount], idx) => ({
         method,
         amount,
-        color: PAYMENT_BAR_COLORS[idx % PAYMENT_BAR_COLORS.length],
+        color: paymentBarColors[idx % paymentBarColors.length],
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, [fBookings, fPos, fLaundry]);
+  }, [fBookings, fPos, fLaundry, paymentBarColors]);
 
   // Financial Transaction Ledger
   const consolidatedLedger: LedgerRow[] = useMemo(() => {
@@ -502,6 +520,7 @@ export const FinancialReportsPage: React.FC = () => {
                   />
                   <Legend
                     iconType="circle"
+                    iconSize={8}
                     wrapperStyle={{ fontSize: '12px', paddingTop: '6px' }}
                   />
                   <Area
@@ -550,7 +569,7 @@ export const FinancialReportsPage: React.FC = () => {
                     {deptBreakdown.map((_, idx) => (
                       <Cell
                         key={idx}
-                        fill={DEPT_COLORS[idx % DEPT_COLORS.length]}
+                        fill={deptColors[idx % deptColors.length]}
                       />
                     ))}
                   </Pie>
@@ -584,7 +603,7 @@ export const FinancialReportsPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span
                         className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: DEPT_COLORS[idx] }}
+                        style={{ backgroundColor: deptColors[idx % deptColors.length] }}
                       />
                       <span className="font-normal text-[#374151]">
                         {d.name}
@@ -634,7 +653,7 @@ export const FinancialReportsPage: React.FC = () => {
                 <BarChart
                   data={expenseChartData}
                   layout="vertical"
-                  margin={{ top: 5, right: 20, left: 4, bottom: 5 }}
+                  margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -653,7 +672,7 @@ export const FinancialReportsPage: React.FC = () => {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={122}
+                    width={96}
                     tick={({ y, payload }) => {
                       const [line1, line2] = splitChartLabel(
                         String(payload.value || '')
@@ -769,193 +788,13 @@ export const FinancialReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Financial Transaction Ledger with 10-Row Pagination */}
+      {/* Financial Transaction Ledger (commented out per design specification)
       <div className="bg-[#F0F0F0] p-1 rounded-[20px]">
         <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="px-5 pt-5 pb-2 flex items-center justify-between">
-            <h3 className="text-[15px] font-semibold text-[#111111]">
-              Financial Transaction Ledger
-            </h3>
-            <span className="text-[12px] font-normal text-[#6B7280]">
-              {filteredLedger.length} transactions
-            </span>
-          </div>
-
-          <TableToolbar
-            left={
-              <SearchInput
-                value={ledgerSearch}
-                onChange={setLedgerSearch}
-                placeholder="Search reference, guest/staff, or description..."
-              />
-            }
-            right={
-              <Dropdown
-                value={ledgerDeptFilter}
-                onChange={setLedgerDeptFilter}
-                options={[
-                  { value: 'ALL', label: 'All Departments' },
-                  { value: 'Rooms', label: 'Rooms' },
-                  { value: 'Bar & POS', label: 'Bar & POS' },
-                  {
-                    value: 'Kitchen & Restaurant',
-                    label: 'Kitchen & Restaurant',
-                  },
-                  { value: 'Laundry', label: 'Laundry' },
-                  {
-                    value: 'Housekeeping/Cleaning',
-                    label: 'Housekeeping/Cleaning',
-                  },
-                  { value: 'Maintenance', label: 'Maintenance' },
-                  { value: 'Administration', label: 'Administration' },
-                ]}
-                className="w-56"
-              />
-            }
-          />
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#EFEFEF] bg-[#FAFAFA]">
-                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
-                    Reference
-                  </th>
-                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
-                    Date
-                  </th>
-                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
-                    Department
-                  </th>
-                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
-                    Description
-                  </th>
-                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
-                    Counterparty / Staff
-                  </th>
-                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
-                    Method
-                  </th>
-                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] text-right whitespace-nowrap">
-                    Amount
-                  </th>
-                  <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F3F4F6] text-[13px]">
-                {paginatedLedger.map((row, idx) => (
-                  <tr
-                    key={`${row.id}-${idx}`}
-                    className="hover:bg-[#FAFAFA] transition-colors"
-                  >
-                    <td className="py-3 px-4 font-mono font-normal text-[#111111] text-[12px] whitespace-nowrap">
-                      {row.id}
-                    </td>
-                    <td className="py-3 px-4 font-normal text-[#4B5563] whitespace-nowrap">
-                      {formatDate(row.date)}
-                    </td>
-                    <td className="py-3 px-4 font-normal text-[#374151] whitespace-nowrap">
-                      {row.department}
-                    </td>
-                    <td className="py-3 px-4 font-normal text-[#111111] whitespace-nowrap">
-                      {row.description}
-                    </td>
-                    <td className="py-3 px-4 font-normal text-[#4B5563] whitespace-nowrap">
-                      {row.party}
-                    </td>
-                    <td className="py-3 px-4 font-normal text-[#374151] text-[12.5px] whitespace-nowrap">
-                      {row.paymentMethod}
-                    </td>
-                    <td className="py-3 px-4 text-right font-normal tabular-nums whitespace-nowrap">
-                      <span
-                        className={
-                          row.type === 'Revenue'
-                            ? 'text-[#15803D]'
-                            : 'text-[#DC2626]'
-                        }
-                      >
-                        {row.type === 'Revenue' ? '+' : '-'}
-                        {formatCurrency(
-                          row.totalAmount,
-                          settings.currencySymbol
-                        )}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <StatusBadge status={row.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Bar */}
-          {filteredLedger.length > 0 && (
-            <div className="px-5 py-3.5 border-t border-[#EFEFEF] bg-[#FAFAFA] flex flex-wrap items-center justify-between gap-3 text-[12px]">
-              <span className="text-[#6B7280]">
-                Showing{' '}
-                <strong className="font-medium text-[#111111]">
-                  {(safeCurrentPage - 1) * LEDGER_PAGE_SIZE + 1}
-                </strong>
-                –
-                <strong className="font-medium text-[#111111]">
-                  {Math.min(
-                    safeCurrentPage * LEDGER_PAGE_SIZE,
-                    filteredLedger.length
-                  )}
-                </strong>{' '}
-                of{' '}
-                <strong className="font-medium text-[#111111]">
-                  {filteredLedger.length}
-                </strong>{' '}
-                entries
-              </span>
-
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={safeCurrentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] border border-[#E5E7EB] bg-white text-[#374151] font-medium hover:bg-[#F3F4F6] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  Prev
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (pageNum) => (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 rounded-[8px] font-medium transition-colors cursor-pointer ${
-                        pageNum === safeCurrentPage
-                          ? 'bg-[#7463A6] text-white'
-                          : 'bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6]'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  )
-                )}
-                <button
-                  type="button"
-                  disabled={safeCurrentPage >= totalPages}
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] border border-[#E5E7EB] bg-white text-[#374151] font-medium hover:bg-[#F3F4F6] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                >
-                  Next
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
+          ...
         </div>
       </div>
+      */}
     </div>
   );
 };

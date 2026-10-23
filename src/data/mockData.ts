@@ -2213,6 +2213,30 @@ export const INITIAL_STAFF: StaffMember[] = [
     status: 'Active',
     lastActivity: '2026-10-21 12:30',
   },
+  {
+    id: 'STF-09',
+    name: 'Kemi Adebayo',
+    role: 'Bar Staff',
+    jobTitle: 'Bar Attendant',
+    department: 'Bar & POS',
+    branchId: 'BR-01',
+    phone: '+234 803 884 1120',
+    email: 'kemi@luminasuites.com',
+    status: 'Active',
+    lastActivity: '2026-10-21 14:20',
+  },
+  {
+    id: 'STF-10',
+    name: 'Ngozi Eze',
+    role: 'Supervisor',
+    jobTitle: 'Operations Supervisor',
+    department: 'Administration',
+    branchId: 'BR-01',
+    phone: '+234 802 550 9311',
+    email: 'ngozi@luminasuites.com',
+    status: 'Active',
+    lastActivity: '2026-10-21 15:00',
+  },
 ];
 
 export const INITIAL_ROLE_PERMISSIONS: RolePermissionConfig[] = [
@@ -2224,9 +2248,15 @@ export const INITIAL_ROLE_PERMISSIONS: RolePermissionConfig[] = [
   },
   {
     role: 'Manager',
-    description: 'Operational supervision across bookings, rooms, POS, laundry, and inventory.',
+    description: 'Operational supervision across bookings, rooms, POS, laundry, inventory, and financial reporting.',
     permissions: { View: true, Create: true, Edit: true, Delete: false, Approve: true, 'Manage Settings': false },
     modulesAccess: ['Overview', 'Hotel Operations', 'Customer Management', 'Sales & Services', 'Laundry', 'Inventory', 'Finance & Intelligence'],
+  },
+  {
+    role: 'Supervisor',
+    description: 'Departmental supervision across rooms, sales, laundry, and inventory.',
+    permissions: { View: true, Create: true, Edit: true, Delete: false, Approve: true, 'Manage Settings': false },
+    modulesAccess: ['Overview', 'Hotel Operations', 'Customer Management', 'Sales & Services', 'Laundry', 'Inventory'],
   },
   {
     role: 'Front Desk',
@@ -2236,39 +2266,45 @@ export const INITIAL_ROLE_PERMISSIONS: RolePermissionConfig[] = [
   },
   {
     role: 'Accountant',
-    description: 'Financial reporting, expense approvals, revenue reconciliation, and ledger audits.',
+    description: 'Financial reporting, expense records, revenue reconciliation, and ledger audits.',
     permissions: { View: true, Create: true, Edit: true, Delete: false, Approve: true, 'Manage Settings': false },
-    modulesAccess: ['Overview', 'Finance & Intelligence', 'Sales & Services', 'Inventory'],
+    modulesAccess: ['Overview', 'Finance & Intelligence', 'Hotel Operations', 'Sales & Services'],
   },
   {
     role: 'Inventory Officer',
-    description: 'Stock receiving, physical counts, department issuance, and stock movements.',
+    description: 'Store Keeper supplies, beverage stock, and kitchen food inventory management.',
     permissions: { View: true, Create: true, Edit: true, Delete: false, Approve: false, 'Manage Settings': false },
-    modulesAccess: ['Inventory'],
+    modulesAccess: ['Overview', 'Inventory'],
   },
   {
     role: 'Housekeeping',
     description: 'Room status updates, cleaning turnarounds, and room supplies usage.',
     permissions: { View: true, Create: true, Edit: true, Delete: false, Approve: false, 'Manage Settings': false },
-    modulesAccess: ['Hotel Operations', 'Inventory'],
+    modulesAccess: ['Overview', 'Hotel Operations', 'Inventory'],
+  },
+  {
+    role: 'Bar Staff',
+    description: 'Bar & POS beverage orders, lounge billing, and guest room charges.',
+    permissions: { View: true, Create: true, Edit: false, Delete: false, Approve: false, 'Manage Settings': false },
+    modulesAccess: ['Overview', 'Sales & Services'],
   },
   {
     role: 'Restaurant Staff',
-    description: 'Bar & POS sales, kitchen order processing, and table billing.',
+    description: 'Kitchen & Restaurant food orders, dining billing, and guest room charges.',
     permissions: { View: true, Create: true, Edit: false, Delete: false, Approve: false, 'Manage Settings': false },
-    modulesAccess: ['Sales & Services'],
+    modulesAccess: ['Overview', 'Sales & Services'],
   },
   {
     role: 'Laundry Staff',
-    description: 'Garment logging, laundry workflow progression, and collection dispatch.',
+    description: 'Garment logging, laundry workflow progression, storage, and laundry CRM.',
     permissions: { View: true, Create: true, Edit: true, Delete: false, Approve: false, 'Manage Settings': false },
-    modulesAccess: ['Laundry'],
+    modulesAccess: ['Overview', 'Laundry'],
   },
 ];
 
 export const INITIAL_STAFF_ACTIVITY: StaffActivityLog[] = [
   { id: 'ACT-01', staffName: 'Nneka Uzoma', role: 'Front Desk', action: 'Confirmed reservation BKG-2049 for Tunde Bakare-Williams', module: 'Bookings', timestamp: '2026-10-21 15:35' },
-  { id: 'ACT-02', staffName: 'Kemi Adebayo', role: 'Restaurant Staff', action: 'Completed VIP Lounge Bar sale POS-8801 (₦135,450)', module: 'Bar & POS', timestamp: '2026-10-21 14:20' },
+  { id: 'ACT-02', staffName: 'Kemi Adebayo', role: 'Bar Staff', action: 'Completed VIP Lounge Bar sale POS-8801 (₦135,450)', module: 'Bar & POS', timestamp: '2026-10-21 14:20' },
   { id: 'ACT-03', staffName: 'Grace Obaseki', role: 'Housekeeping', action: 'Updated Room 103 operational status to Cleaning', module: 'Rooms', timestamp: '2026-10-21 14:15' },
   { id: 'ACT-04', staffName: 'Chef Musa Ibrahim', role: 'Restaurant Staff', action: 'Dispatched In-Suite Dining order RES-4401 to Room 401', module: 'Kitchen & Restaurant', timestamp: '2026-10-21 13:10' },
   { id: 'ACT-05', staffName: 'Emmanuel Effiong', role: 'Laundry Staff', action: 'Moved Order LND-301 to Ready for Collection', module: 'Laundry', timestamp: '2026-10-21 12:30' },
@@ -2333,6 +2369,7 @@ export const INITIAL_SETTINGS: HotelSettings = {
     'Maintenance',
   ],
   sidebarStyle: 'standard',
+  sidebarNavigationMode: 'full',
 };
 
 export const INITIAL_OPTIONAL_MODULES: OptionalModule[] = [

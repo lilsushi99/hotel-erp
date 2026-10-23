@@ -41,3 +41,15 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #BDBDB5;
 }
+
+/* Remove unwanted browser focus outline on Recharts SVG and chart wrappers */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-layer,
+.recharts-sector,
+svg.recharts-surface:focus,
+div.recharts-wrapper:focus {
+  outline: none !important;
+}
+

@@ -38,6 +38,7 @@ export const RoomsPage: React.FC = () => {
     updateRoomType,
     deleteRoomType,
     notify,
+    canEditRoomPricing,
   } = useHotel();
 
   const sym = settings.currencySymbol;
@@ -147,8 +148,12 @@ export const RoomsPage: React.FC = () => {
   const handleSaveRoom = (e: React.FormEvent) => {
     e.preventDefault();
     setRoomError('');
-    if (!roomNumber.trim() || !roomTypeId) {
-      setRoomError('Room number and room type are required.');
+    if (!roomNumber.trim() || (roomTypes.length > 0 && !roomTypeId)) {
+      setRoomError(
+        roomTypes.length > 0
+          ? 'Room number and room type are required.'
+          : 'Room number is required.'
+      );
       return;
     }
 
@@ -248,30 +253,32 @@ export const RoomsPage: React.FC = () => {
       <PageHeader
         title="Rooms & Categories"
         actions={
-          <>
-            <button
-              type="button"
-              onClick={() => {
-                setEditingType(null);
-                setTypeName('');
-                setTypeRoomCount(4);
-                setTypeError('');
-                setIsTypeModalOpen(true);
-              }}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-white border border-[#E2E2DC] hover:bg-[#F6F6F4] text-[#1E1E1E] text-[13px] font-medium transition-colors cursor-pointer"
-            >
-              <Layers className="w-4 h-4 text-[#7463A6]" />
-              Room Type
-            </button>
-            <button
-              type="button"
-              onClick={openAddRoom}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#7463A6] hover:bg-[#635394] text-white text-[13px] font-medium transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Add Room
-            </button>
-          </>
+          canEditRoomPricing ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingType(null);
+                  setTypeName('');
+                  setTypeRoomCount(4);
+                  setTypeError('');
+                  setIsTypeModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-white border border-[#E2E2DC] hover:bg-[#F6F6F4] text-[#1E1E1E] text-[13px] font-medium transition-colors cursor-pointer"
+              >
+                <Layers className="w-4 h-4 text-[#7463A6]" />
+                Room Type
+              </button>
+              <button
+                type="button"
+                onClick={openAddRoom}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#7463A6] hover:bg-[#635394] text-white text-[13px] font-medium transition-colors cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Add Room
+              </button>
+            </>
+          ) : undefined
         }
       />
 
@@ -419,22 +426,26 @@ export const RoomsPage: React.FC = () => {
                         { value: 'Maintenance', label: 'Set Maintenance' },
                       ]}
                     />
-                    <button
-                      type="button"
-                      onClick={() => openEditRoom(room)}
-                      className="p-2 rounded-xl bg-[#F6F6F4] hover:bg-[#EAEAE4] text-[#4A4A46] transition-colors"
-                      title="Edit Room"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteRoomTarget(room)}
-                      className="p-2 rounded-xl bg-[#F6F6F4] hover:bg-[#FCECE9] text-[#6E6E6A] hover:text-[#B93829] transition-colors"
-                      title="Delete Room"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {canEditRoomPricing && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openEditRoom(room)}
+                          className="p-2 rounded-xl bg-[#F6F6F4] hover:bg-[#EAEAE4] text-[#4A4A46] transition-colors cursor-pointer"
+                          title="Edit Room"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteRoomTarget(room)}
+                          className="p-2 rounded-xl bg-[#F6F6F4] hover:bg-[#FCECE9] text-[#6E6E6A] hover:text-[#B93829] transition-colors cursor-pointer"
+                          title="Delete Room"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -479,16 +490,27 @@ export const RoomsPage: React.FC = () => {
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E2DC] text-[14px] tabular-nums"
               />
             </div>
-            <Dropdown
-              label="Room Type"
-              required
-              value={roomTypeId}
-              onChange={handleRoomTypeChangeInForm}
-              options={roomTypes.map((rt) => ({
-                value: rt.id,
-                label: rt.name,
-              }))}
-            />
+            {roomTypes.length > 0 ? (
+              <Dropdown
+                label="Room Type"
+                required
+                value={roomTypeId}
+                onChange={handleRoomTypeChangeInForm}
+                options={roomTypes.map((rt) => ({
+                  value: rt.id,
+                  label: rt.name,
+                }))}
+              />
+            ) : (
+              <div>
+                <label className="block text-[12px] font-medium text-[#4A4A46] mb-1.5">
+                  Room Type
+                </label>
+                <div className="px-3.5 py-2.5 rounded-xl border border-[#E2E2DC] bg-[#FAF9F6] text-[13px] text-[#6E6E6A]">
+                  Standard (No categories defined)
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

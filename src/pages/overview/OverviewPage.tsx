@@ -41,6 +41,7 @@ import {
 } from '../../utils/analytics';
 import {
   formatCompactCurrency,
+  formatCompactNumber,
   formatCurrency,
   formatDateReadable,
   formatShortDate,
@@ -139,6 +140,12 @@ export const OverviewPage: React.FC = () => {
     useState<DateRangeFilter>(globalDateFilter);
 
   // Sync local chart periods when the user changes the global Overview date filter
+  const handleGlobalDateChange = (nextFilter: DateRangeFilter) => {
+    setGlobalDateFilter(nextFilter);
+    setRevDateFilter(nextFilter);
+    setExpDateFilter(nextFilter);
+  };
+
   useEffect(() => {
     setRevDateFilter(globalDateFilter);
     setExpDateFilter(globalDateFilter);
@@ -712,7 +719,7 @@ export const OverviewPage: React.FC = () => {
         actions={
           <DateRangeControl
             value={globalDateFilter}
-            onChange={setGlobalDateFilter}
+            onChange={handleGlobalDateChange}
           />
         }
       />
@@ -826,6 +833,20 @@ export const OverviewPage: React.FC = () => {
                   data={revenueTrendData}
                   margin={{ top: 8, right: 10, left: 0, bottom: 2 }}
                 >
+                  <defs>
+                    <linearGradient id="overviewRevGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor={settings.accentColor || '#7463A6'}
+                        stopOpacity={0.22}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={settings.accentColor || '#7463A6'}
+                        stopOpacity={0.02}
+                      />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="#EFEFEA"
@@ -863,10 +884,10 @@ export const OverviewPage: React.FC = () => {
                   <Area
                     type="monotone"
                     dataKey="value"
-                    stroke="#7463A6"
+                    stroke={settings.accentColor || '#7463A6'}
                     strokeWidth={2}
-                    fill="#7463A6"
-                    fillOpacity={0.12}
+                    fill="url(#overviewRevGrad)"
+                    fillOpacity={1}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -902,9 +923,9 @@ export const OverviewPage: React.FC = () => {
 
           {/* Inner White Surface */}
           <div className="bg-white rounded-[11.5px] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.025)] flex-1 flex flex-col justify-between">
-            <div className="h-[186px] w-full relative">
+            <div className="h-[196px] w-full relative">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart margin={{ top: 12, right: 28, bottom: 12, left: 28 }}>
                   <Pie
                     data={
                       expensesChartData.items.length > 0
@@ -915,15 +936,33 @@ export const OverviewPage: React.FC = () => {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={76}
+                    innerRadius={40}
+                    outerRadius={60}
                     paddingAngle={3}
+                    label={
+                      expensesChartData.items.length > 0
+                        ? ({ value }) => formatCompactNumber(Number(value || 0))
+                        : false
+                    }
+                    labelLine={
+                      expensesChartData.items.length > 0
+                        ? { stroke: '#CFCFC8', strokeWidth: 1 }
+                        : false
+                    }
                   >
                     {(expensesChartData.items.length > 0
                       ? expensesChartData.items
                       : [{ name: 'No Expenses', value: 1, color: '#E6E6E0' }]
                     ).map((entry, idx) => (
-                      <Cell key={idx} fill={entry.color} stroke="none" />
+                      <Cell
+                        key={idx}
+                        fill={
+                          idx === 0 && entry.color === '#7463A6'
+                            ? settings.accentColor || '#7463A6'
+                            : entry.color
+                        }
+                        stroke="none"
+                      />
                     ))}
                   </Pie>
                   <Tooltip

@@ -191,35 +191,6 @@ export const LaundryCrmPage: React.FC = () => {
         }
       />
 
-      {/* 4 KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          label="Laundry Customers"
-          value={kpis.total}
-          icon={Users}
-          iconTone="purple"
-        />
-        <KpiCard
-          label="Returning Customers"
-          value={kpis.returning}
-          icon={UserCheck}
-          iconTone="teal"
-        />
-        <KpiCard
-          label="Total Laundry Spend"
-          value={formatCompactCurrency(kpis.totalRevenue, sym)}
-          fullValueTooltip={formatCurrency(kpis.totalRevenue, sym)}
-          icon={Wallet}
-          iconTone="green"
-        />
-        <KpiCard
-          label="New Customers"
-          value={kpis.newCustomers}
-          icon={UserPlus}
-          iconTone="amber"
-        />
-      </div>
-
       {/* Filter Bar */}
       <div className="bg-white rounded-[14px] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5 flex-1">

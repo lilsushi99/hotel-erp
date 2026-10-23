@@ -42,7 +42,7 @@ export function formatCompactNumber(num: number): string {
 
 export function getExpenseDepartment(exp: { category: string; department?: string; description?: string }): string {
   if (exp.department && exp.department.trim()) {
-    return exp.department;
+    return exp.department.trim();
   }
   const cat = (exp.category || '').toLowerCase();
   const desc = (exp.description || '').toLowerCase();
@@ -64,7 +64,7 @@ export function getExpenseDepartment(exp: { category: string; department?: strin
   if (cat.includes('room')) {
     return 'Rooms';
   }
-  return 'Administration';
+  return 'All Departments';
 }
 
 export function formatDateReadable(dateStr: string): string {

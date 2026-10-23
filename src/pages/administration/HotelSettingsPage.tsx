@@ -62,6 +62,11 @@ export const HotelSettingsPage: React.FC = () => {
     updateSettings({ numberFormat: format });
   };
 
+  const handleSidebarNavigationModeSelect = (mode: 'full' | 'collapsed') => {
+    setForm((prev) => ({ ...prev, sidebarNavigationMode: mode }));
+    updateSettings({ sidebarNavigationMode: mode });
+  };
+
   const handleAccentColorSelect = (color: string) => {
     const clean = color.startsWith('#') ? color : `#${color}`;
     setForm((prev) => ({ ...prev, accentColor: clean }));
@@ -233,6 +238,58 @@ export const HotelSettingsPage: React.FC = () => {
                   Hierarchical parent groups with curved rib-cage connectors.
                 </p>
               </button>
+            </div>
+
+            {/* Navigation Display Mode (Full vs Collapsed) */}
+            <div className="pt-3 border-t border-[#F0F0EC]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[12px] font-medium text-[#1E1E1E]">
+                  Navigation Display Mode
+                </span>
+                <span className="text-[11px] text-[#6E6E6A]">
+                  Parent group expansion
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleSidebarNavigationModeSelect('full')}
+                  className={`px-3 py-2 rounded-[10px] border text-left transition-all cursor-pointer flex items-center justify-between ${
+                    (form.sidebarNavigationMode || 'full') === 'full'
+                      ? 'border-[#7463A6] bg-[#F1EEF8]/35 text-[#1E1E1E] font-medium'
+                      : 'border-[#E6E6E0] bg-white text-[#6E6E6A] hover:border-[#CFCFC8]'
+                  }`}
+                >
+                  <div>
+                    <div className="text-[12px]">Full Navigation</div>
+                    <div className="text-[10.5px] text-[#8C8C87]">All links visible</div>
+                  </div>
+                  {(form.sidebarNavigationMode || 'full') === 'full' && (
+                    <span className="w-4 h-4 rounded-full bg-[#7463A6] text-white flex items-center justify-center shrink-0">
+                      <Check className="w-2.5 h-2.5" />
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSidebarNavigationModeSelect('collapsed')}
+                  className={`px-3 py-2 rounded-[10px] border text-left transition-all cursor-pointer flex items-center justify-between ${
+                    form.sidebarNavigationMode === 'collapsed'
+                      ? 'border-[#7463A6] bg-[#F1EEF8]/35 text-[#1E1E1E] font-medium'
+                      : 'border-[#E6E6E0] bg-white text-[#6E6E6A] hover:border-[#CFCFC8]'
+                  }`}
+                >
+                  <div>
+                    <div className="text-[12px]">Collapsed Navigation</div>
+                    <div className="text-[10.5px] text-[#8C8C87]">Expand parent to view</div>
+                  </div>
+                  {form.sidebarNavigationMode === 'collapsed' && (
+                    <span className="w-4 h-4 rounded-full bg-[#7463A6] text-white flex items-center justify-center shrink-0">
+                      <Check className="w-2.5 h-2.5" />
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

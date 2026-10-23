@@ -54,6 +54,8 @@ export const SuppliesPage: React.FC = () => {
     recordStockOperation,
     saveSupplyCategories,
     notify,
+    canManageInventory,
+    hasPermission,
   } = useHotel();
 
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
@@ -271,16 +273,18 @@ export const SuppliesPage: React.FC = () => {
       <PageHeader
         title="Store Keeper"
         actions={
-          <div className="flex flex-wrap items-center gap-2.5">
-            <SecondaryButton onClick={openManageCategories}>
-              <FolderCog className="w-4 h-4" />
-              Manage Departments
-            </SecondaryButton>
-            <PrimaryButton onClick={openNewItemModal}>
-              <Plus className="w-4 h-4" />
-              Add Store Item
-            </PrimaryButton>
-          </div>
+          canManageInventory ? (
+            <div className="flex flex-wrap items-center gap-2.5">
+              <SecondaryButton onClick={openManageCategories}>
+                <FolderCog className="w-4 h-4" />
+                Manage Departments
+              </SecondaryButton>
+              <PrimaryButton onClick={openNewItemModal}>
+                <Plus className="w-4 h-4" />
+                Add Store Item
+              </PrimaryButton>
+            </div>
+          ) : undefined
         }
       />
 
@@ -417,24 +421,28 @@ export const SuppliesPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5 px-5 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEditItemModal(item)}
-                            title="Edit Item"
-                            className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6] transition-colors cursor-pointer"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(item)}
-                            title="Delete Item"
-                            className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {canManageInventory && (
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openEditItemModal(item)}
+                              title="Edit Item"
+                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6] transition-colors cursor-pointer"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            {hasPermission('Delete') && (
+                              <button
+                                type="button"
+                                onClick={() => setDeleteTarget(item)}
+                                title="Delete Item"
+                                className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -42,6 +42,8 @@ export const FoodInventoryPage: React.FC = () => {
     updateFoodIngredient,
     deleteFoodIngredient,
     recordStockOperation,
+    canManageInventory,
+    hasPermission,
   } = useHotel();
 
   const [search, setSearch] = useState('');
@@ -212,10 +214,12 @@ export const FoodInventoryPage: React.FC = () => {
       <PageHeader
         title="Food Inventory"
         actions={
-          <PrimaryButton onClick={openNewModal}>
-            <Plus className="w-4 h-4" />
-            Add Food
-          </PrimaryButton>
+          canManageInventory ? (
+            <PrimaryButton onClick={openNewModal}>
+              <Plus className="w-4 h-4" />
+              Add Food
+            </PrimaryButton>
+          ) : undefined
         }
       />
 
@@ -365,22 +369,26 @@ export const FoodInventoryPage: React.FC = () => {
                           <StatusBadge status={status} />
                         </td>
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              onClick={() => openEditModal(item)}
-                              title="Edit Food"
-                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6] cursor-pointer"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteFoodIngredient(item.id)}
-                              title="Delete Food"
-                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {canManageInventory && (
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                onClick={() => openEditModal(item)}
+                                title="Edit Food"
+                                className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6] cursor-pointer"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              {hasPermission('Delete') && (
+                                <button
+                                  onClick={() => deleteFoodIngredient(item.id)}
+                                  title="Delete Food"
+                                  className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

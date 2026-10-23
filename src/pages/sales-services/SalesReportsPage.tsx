@@ -1,6 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { FileBarChart2, RotateCcw } from 'lucide-react';
+import {
+  FileBarChart2,
+  RotateCcw,
+  Wine,
+  UtensilsCrossed,
+  Award,
+  TrendingUp,
+} from 'lucide-react';
 import { useHotel } from '../../context/HotelContext';
+import { KpiCard } from '../../components/ui/KpiCard';
 import { Dropdown } from '../../components/ui/Dropdown';
 import {
   PageHeader,
@@ -8,7 +16,7 @@ import {
   SearchInput,
   EmptyState,
 } from '../../components/ui/PageControls';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCompactCurrency, formatCurrency } from '../../utils/formatters';
 
 interface SalesPivotRow {
   key: string;
@@ -30,7 +38,6 @@ export const SalesReportsPage: React.FC = () => {
 
   const [search, setSearch] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('ALL');
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('ALL');
   const [dateFrom, setDateFrom] = useState<string>('2026-10-01');
   const [dateTo, setDateTo] = useState<string>('2026-10-31');
 
@@ -43,32 +50,28 @@ export const SalesReportsPage: React.FC = () => {
       if (departmentFilter !== 'ALL' && tx.department !== departmentFilter) {
         return false;
       }
-      if (paymentMethodFilter !== 'ALL' && tx.paymentMethod !== paymentMethodFilter) {
-        return false;
-      }
       return true;
     });
-  }, [
-    posTransactions,
-    selectedBranchId,
-    departmentFilter,
-    paymentMethodFilter,
-    dateFrom,
-    dateTo,
-  ]);
+  }, [posTransactions, selectedBranchId, departmentFilter, dateFrom, dateTo]);
 
   const pivotRows = useMemo(() => {
     const map = new Map<string, SalesPivotRow>();
     const orderSetByItem = new Map<string, Set<string>>();
 
     filteredTransactions.forEach((tx) => {
-      // Calculate ratio of net transaction total to item subtotal so discounts/taxes are proportionally reflected
       const rawSubtotal = tx.items.reduce((s, i) => s + i.subtotal, 0);
       const scale = rawSubtotal > 0 ? tx.totalAmount / rawSubtotal : 1;
+      const collectedRatio =
+        tx.paymentStatus === 'Paid'
+          ? 1
+          : tx.totalAmount > 0
+          ? Math.max(0, Math.min(1, (tx.amountPaid || 0) / tx.totalAmount))
+          : 0;
 
       tx.items.forEach((item) => {
         const key = `${tx.department}::${item.itemId || item.name}`;
         const allocatedRevenue = Math.round(item.subtotal * scale);
+        const collectedRevenue = Math.round(allocatedRevenue * collectedRatio);
 
         let ordersSet = orderSetByItem.get(key);
         if (!ordersSet) {
@@ -77,15 +80,24 @@ export const SalesReportsPage: React.FC = () => {
         }
         ordersSet.add(tx.id);
 
+        const addCash = tx.paymentMethod === 'Cash' ? collectedRevenue : 0;
+        const addTransfer =
+          tx.paymentMethod === 'Bank Transfer' ? collectedRevenue : 0;
+        const addCard =
+          tx.paymentMethod === 'Card' || tx.paymentMethod === 'POS Terminal'
+            ? collectedRevenue
+            : 0;
+        const addRoomCharge =
+          tx.paymentMethod === 'Room Charge' ? allocatedRevenue : 0;
+
         const existing = map.get(key);
         if (existing) {
           existing.orderCount = ordersSet.size;
           existing.quantitySold += item.quantity;
-          if (tx.paymentMethod === 'Cash') existing.cashRevenue += allocatedRevenue;
-          else if (tx.paymentMethod === 'Bank Transfer')
-            existing.transferRevenue += allocatedRevenue;
-          else if (tx.paymentMethod === 'Card') existing.cardRevenue += allocatedRevenue;
-          else existing.roomChargeRevenue += allocatedRevenue;
+          existing.cashRevenue += addCash;
+          existing.transferRevenue += addTransfer;
+          existing.cardRevenue += addCard;
+          existing.roomChargeRevenue += addRoomCharge;
           existing.totalRevenue += allocatedRevenue;
         } else {
           map.set(key, {
@@ -95,12 +107,10 @@ export const SalesReportsPage: React.FC = () => {
             department: tx.department,
             orderCount: 1,
             quantitySold: item.quantity,
-            cashRevenue: tx.paymentMethod === 'Cash' ? allocatedRevenue : 0,
-            transferRevenue:
-              tx.paymentMethod === 'Bank Transfer' ? allocatedRevenue : 0,
-            cardRevenue: tx.paymentMethod === 'Card' ? allocatedRevenue : 0,
-            roomChargeRevenue:
-              tx.paymentMethod === 'Room Charge' ? allocatedRevenue : 0,
+            cashRevenue: addCash,
+            transferRevenue: addTransfer,
+            cardRevenue: addCard,
+            roomChargeRevenue: addRoomCharge,
             totalRevenue: allocatedRevenue,
           });
         }
@@ -128,16 +138,18 @@ export const SalesReportsPage: React.FC = () => {
     const roomChargeRevenue = pivotRows.reduce((s, r) => s + r.roomChargeRevenue, 0);
     const totalRevenue = pivotRows.reduce((s, r) => s + r.totalRevenue, 0);
 
-    const barRevenue = pivotRows
-      .filter((r) => r.department === 'Bar & POS')
-      .reduce((s, r) => s + r.totalRevenue, 0);
-    const restaurantRevenue = pivotRows
-      .filter((r) => r.department === 'Kitchen & Restaurant')
-      .reduce((s, r) => s + r.totalRevenue, 0);
+    const barRows = pivotRows.filter((r) => r.department === 'Bar & POS');
+    const restaurantRows = pivotRows.filter(
+      (r) => r.department === 'Kitchen & Restaurant'
+    );
 
-    const topByRevenue = pivotRows[0] || null;
-    const topByQuantity =
-      [...pivotRows].sort((a, b) => b.quantitySold - a.quantitySold)[0] || null;
+    const barRevenue = barRows.reduce((s, r) => s + r.totalRevenue, 0);
+    const restaurantRevenue = restaurantRows.reduce((s, r) => s + r.totalRevenue, 0);
+
+    const topBarItem =
+      [...barRows].sort((a, b) => b.quantitySold - a.quantitySold)[0] || null;
+    const topRestaurantItem =
+      [...restaurantRows].sort((a, b) => b.quantitySold - a.quantitySold)[0] || null;
 
     return {
       totalOrders,
@@ -149,8 +161,8 @@ export const SalesReportsPage: React.FC = () => {
       totalRevenue,
       barRevenue,
       restaurantRevenue,
-      topByRevenue,
-      topByQuantity,
+      topBarItem,
+      topRestaurantItem,
     };
   }, [pivotRows, filteredTransactions.length]);
 
@@ -170,86 +182,90 @@ export const SalesReportsPage: React.FC = () => {
         }
       />
 
-      {/* Filter Bar & Inline Highlights (No KPI Cards) */}
-      <div className="bg-white rounded-[14px] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search beverage or food item..."
-              className="w-full sm:w-64"
-            />
+      {/* Top Filter Control Row (Above KPI Cards): Search Input + Department Dropdown */}
+      <div className="bg-white rounded-[14px] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search beverage or food item..."
+            className="w-full sm:w-72"
+          />
 
-            <Dropdown
-              value={departmentFilter}
-              onChange={setDepartmentFilter}
-              size="sm"
-              className="w-52"
-              options={[
-                { value: 'ALL', label: 'All Departments' },
-                { value: 'Bar & POS', label: 'Bar & POS' },
-                { value: 'Kitchen & Restaurant', label: 'Kitchen & Restaurant' },
-              ]}
-            />
+          <Dropdown
+            value={departmentFilter}
+            onChange={setDepartmentFilter}
+            size="sm"
+            className="w-52"
+            options={[
+              { value: 'ALL', label: 'All Departments' },
+              { value: 'Bar & POS', label: 'Bar & POS' },
+              { value: 'Kitchen & Restaurant', label: 'Kitchen & Restaurant' },
+            ]}
+          />
 
-            <Dropdown
-              value={paymentMethodFilter}
-              onChange={setPaymentMethodFilter}
-              size="sm"
-              className="w-48"
-              options={[
-                { value: 'ALL', label: 'All Payment Methods' },
-                { value: 'Cash', label: 'Cash' },
-                { value: 'Bank Transfer', label: 'Bank Transfer' },
-                { value: 'Card', label: 'Card' },
-                { value: 'Room Charge', label: 'Room Charge' },
-              ]}
-            />
-
-            {(departmentFilter !== 'ALL' ||
-              paymentMethodFilter !== 'ALL' ||
-              search) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch('');
-                  setDepartmentFilter('ALL');
-                  setPaymentMethodFilter('ALL');
-                }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[12px] text-[#7463A6] hover:bg-[#F1EEF8] font-medium transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reset
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-[12.5px] text-[#6E6E6A]">
-            <div className="flex items-center gap-1.5 whitespace-nowrap">
-              <span>Bar & POS:</span>
-              <span className="text-[#1E1E1E] font-medium tabular-nums">
-                {formatCurrency(summary.barRevenue, sym)}
-              </span>
-            </div>
-            <span className="text-[#E2E2DC] hidden sm:inline">|</span>
-            <div className="flex items-center gap-1.5 whitespace-nowrap">
-              <span>Kitchen & Restaurant:</span>
-              <span className="text-[#1E1E1E] font-medium tabular-nums">
-                {formatCurrency(summary.restaurantRevenue, sym)}
-              </span>
-            </div>
-            <span className="text-[#E2E2DC] hidden sm:inline">|</span>
-            <div className="flex items-center gap-1.5 whitespace-nowrap">
-              <span>Top Item:</span>
-              <span className="text-[#1E1E1E] font-medium">
-                {summary.topByRevenue
-                  ? `${summary.topByRevenue.itemName} (${summary.topByRevenue.quantitySold} sold)`
-                  : '—'}
-              </span>
-            </div>
-          </div>
+          {(departmentFilter !== 'ALL' || search) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setDepartmentFilter('ALL');
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[12px] text-[#7463A6] hover:bg-[#F1EEF8] font-medium transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset
+            </button>
+          )}
         </div>
+      </div>
+
+      {/* 4 KPI Summary Cards Below Top Control Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          label="Bar & POS Revenue"
+          value={formatCompactCurrency(summary.barRevenue, sym)}
+          fullValueTooltip={formatCurrency(summary.barRevenue, sym)}
+          icon={Wine}
+          iconTone="purple"
+        />
+        <KpiCard
+          label="Kitchen & Restaurant Revenue"
+          value={formatCompactCurrency(summary.restaurantRevenue, sym)}
+          fullValueTooltip={formatCurrency(summary.restaurantRevenue, sym)}
+          icon={UtensilsCrossed}
+          iconTone="teal"
+        />
+        <KpiCard
+          label="Top Item Sold (Bar & POS)"
+          value={
+            summary.topBarItem
+              ? `${summary.topBarItem.itemName} (${summary.topBarItem.quantitySold})`
+              : '—'
+          }
+          fullValueTooltip={
+            summary.topBarItem
+              ? `${summary.topBarItem.itemName} · ${summary.topBarItem.quantitySold} sold`
+              : undefined
+          }
+          icon={Award}
+          iconTone="amber"
+        />
+        <KpiCard
+          label="Top Item Sold (Kitchen & Restaurant)"
+          value={
+            summary.topRestaurantItem
+              ? `${summary.topRestaurantItem.itemName} (${summary.topRestaurantItem.quantitySold})`
+              : '—'
+          }
+          fullValueTooltip={
+            summary.topRestaurantItem
+              ? `${summary.topRestaurantItem.itemName} · ${summary.topRestaurantItem.quantitySold} sold`
+              : undefined
+          }
+          icon={TrendingUp}
+          iconTone="green"
+        />
       </div>
 
       {/* Pivot Summary Table */}
@@ -258,7 +274,7 @@ export const SalesReportsPage: React.FC = () => {
           <EmptyState
             icon={FileBarChart2}
             title="No sales records match the selected filters"
-            description="Adjust the department, payment method, or reporting period to inspect Bar & POS and Restaurant sales."
+            description="Adjust the department or reporting period to inspect Bar & POS and Restaurant sales."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -267,7 +283,7 @@ export const SalesReportsPage: React.FC = () => {
                 <tr className="bg-[#FAF9F6] border-b border-[#EFEFEA] text-[11.5px] font-medium text-[#6E6E6A] whitespace-nowrap">
                   <th className="px-5 py-3.5">Product / Item Name</th>
                   <th className="px-4 py-3.5">Department</th>
-                  <th className="px-4 py-3.5 text-right">Orders</th>
+                  <th className="px-4 py-3.5 text-right">Number of Orders</th>
                   <th className="px-4 py-3.5 text-right">Quantity Sold</th>
                   <th className="px-4 py-3.5 text-right">Cash</th>
                   <th className="px-4 py-3.5 text-right">Bank Transfer</th>
@@ -356,3 +372,4 @@ export const SalesReportsPage: React.FC = () => {
     </div>
   );
 };
+

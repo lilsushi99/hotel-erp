@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FileBarChart2, RotateCcw } from 'lucide-react';
 import { useHotel } from '../../context/HotelContext';
 import { Dropdown } from '../../components/ui/Dropdown';
@@ -10,13 +10,30 @@ import {
 import { formatCurrency } from '../../utils/formatters';
 
 export const HotelOperationsReportsPage: React.FC = () => {
-  const { bookings, rooms, roomTypes, guests, selectedBranchId, settings } = useHotel();
+  const { bookings, rooms, roomTypes, selectedBranchId, settings } = useHotel();
   const sym = settings.currencySymbol;
 
-  const [roomTypeFilter, setRoomTypeFilter] = useState<string>('ALL');
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('ALL');
+  const [reportMode, setReportMode] = useState<'roomTypes' | 'rooms'>(
+    roomTypes.length > 0 ? 'roomTypes' : 'rooms'
+  );
+  const [entityFilter, setEntityFilter] = useState<string>('ALL');
   const [dateFrom, setDateFrom] = useState<string>('2026-10-01');
   const [dateTo, setDateTo] = useState<string>('2026-10-31');
+
+  useEffect(() => {
+    if (roomTypes.length === 0 && reportMode === 'roomTypes') {
+      setReportMode('rooms');
+      setEntityFilter('ALL');
+    }
+  }, [roomTypes.length, reportMode]);
+
+  const branchRooms = useMemo(
+    () =>
+      selectedBranchId === 'ALL'
+        ? rooms
+        : rooms.filter((r) => r.branchId === selectedBranchId),
+    [rooms, selectedBranchId]
+  );
 
   const branchBookings = useMemo(
     () =>
@@ -26,128 +43,107 @@ export const HotelOperationsReportsPage: React.FC = () => {
     [bookings, selectedBranchId]
   );
 
-  // Determine total historical bookings per guest to classify Returning vs New
-  const guestBookingCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    branchBookings
-      .filter((b) => b.bookingStatus !== 'Cancelled')
-      .forEach((b) => {
-        const key = b.guestId || b.guestName.trim().toLowerCase();
-        counts.set(key, (counts.get(key) || 0) + 1);
-      });
-    return counts;
-  }, [branchBookings]);
-
   // Filtered non-cancelled bookings in reporting period
   const filteredBookings = useMemo(() => {
     return branchBookings.filter((b) => {
       if (b.bookingStatus === 'Cancelled') return false;
       if (dateFrom && b.checkOutDate < dateFrom) return false;
       if (dateTo && b.checkInDate > dateTo) return false;
-      if (paymentMethodFilter !== 'ALL' && b.paymentMethod !== paymentMethodFilter) {
-        return false;
-      }
-      if (roomTypeFilter !== 'ALL') {
-        const rm = rooms.find((r) => r.id === b.roomId);
-        if (!rm || rm.roomTypeId !== roomTypeFilter) return false;
+      if (entityFilter !== 'ALL') {
+        if (reportMode === 'roomTypes') {
+          const rm = rooms.find((r) => r.id === b.roomId);
+          if (!rm || rm.roomTypeId !== entityFilter) return false;
+        } else {
+          if (b.roomId !== entityFilter) return false;
+        }
       }
       return true;
     });
-  }, [branchBookings, rooms, roomTypeFilter, paymentMethodFilter, dateFrom, dateTo]);
+  }, [branchBookings, rooms, reportMode, entityFilter, dateFrom, dateTo]);
 
-  // Pivot rows grouped by Room Type
+  // Pivot rows grouped by Room Type or Individual Room
   const pivotRows = useMemo(() => {
-    const visibleRoomTypes =
-      roomTypeFilter === 'ALL'
-        ? roomTypes
-        : roomTypes.filter((rt) => rt.id === roomTypeFilter);
-
     const totalRevenueAll = filteredBookings.reduce((sum, b) => sum + b.totalAmount, 0);
 
-    return visibleRoomTypes.map((rt) => {
-      const rtRoomIds = new Set(
-        rooms.filter((r) => r.roomTypeId === rt.id).map((r) => r.id)
-      );
-      const rtBookings = filteredBookings.filter((b) => rtRoomIds.has(b.roomId));
-
-      const uniqueGuestKeys = new Set<string>();
-      const returningGuestKeys = new Set<string>();
-      const newGuestKeys = new Set<string>();
-
+    const accumulateBookings = (bList: typeof filteredBookings) => {
       let cashRevenue = 0;
       let transferRevenue = 0;
       let cardRevenue = 0;
       let totalRevenue = 0;
-      let totalNights = 0;
 
-      rtBookings.forEach((b) => {
-        const key = b.guestId || b.guestName.trim().toLowerCase();
-        uniqueGuestKeys.add(key);
+      bList.forEach((b) => {
+        const collected =
+          b.paymentStatus === 'Paid'
+            ? b.totalAmount
+            : Math.max(0, Math.min(b.totalAmount, b.amountPaid || 0));
 
-        const guestProfile = guests.find((g) => g.id === b.guestId);
-        const totalStays = guestBookingCounts.get(key) || 1;
-        const isReturning =
-          totalStays > 1 ||
-          guestProfile?.guestType === 'VIP' ||
-          guestProfile?.guestType === 'Regular' ||
-          guestProfile?.guestType === 'Corporate';
-
-        if (isReturning) {
-          returningGuestKeys.add(key);
-        } else {
-          newGuestKeys.add(key);
+        if (collected > 0) {
+          if (b.paymentMethod === 'Cash') {
+            cashRevenue += collected;
+          } else if (b.paymentMethod === 'Bank Transfer') {
+            transferRevenue += collected;
+          } else if (b.paymentMethod === 'Card' || b.paymentMethod === 'POS Terminal') {
+            cardRevenue += collected;
+          }
         }
-
-        if (b.paymentMethod === 'Cash') cashRevenue += b.totalAmount;
-        else if (b.paymentMethod === 'Bank Transfer') transferRevenue += b.totalAmount;
-        else if (b.paymentMethod === 'Card') cardRevenue += b.totalAmount;
-
         totalRevenue += b.totalAmount;
-        totalNights += b.nights || 1;
       });
 
       const sharePct =
         totalRevenueAll > 0 ? Math.round((totalRevenue / totalRevenueAll) * 100) : 0;
 
       return {
-        roomTypeId: rt.id,
-        roomTypeName: rt.name,
-        bookingsCount: rtBookings.length,
-        totalNights,
-        uniqueCustomers: uniqueGuestKeys.size,
-        returningCustomers: returningGuestKeys.size,
-        newCustomers: newGuestKeys.size,
+        bookingsCount: bList.length,
         cashRevenue,
         transferRevenue,
         cardRevenue,
         totalRevenue,
         sharePct,
       };
+    };
+
+    if (reportMode === 'roomTypes' && roomTypes.length > 0) {
+      const visibleRoomTypes =
+        entityFilter === 'ALL'
+          ? roomTypes
+          : roomTypes.filter((rt) => rt.id === entityFilter);
+
+      return visibleRoomTypes.map((rt) => {
+        const rtRoomIds = new Set(
+          branchRooms.filter((r) => r.roomTypeId === rt.id).map((r) => r.id)
+        );
+        const rtBookings = filteredBookings.filter(
+          (b) => rtRoomIds.has(b.roomId) || b.roomTypeId === rt.id
+        );
+        return {
+          id: rt.id,
+          name: rt.name,
+          ...accumulateBookings(rtBookings),
+        };
+      });
+    }
+
+    const visibleRooms =
+      entityFilter === 'ALL'
+        ? branchRooms
+        : branchRooms.filter((r) => r.id === entityFilter);
+
+    return visibleRooms.map((rm) => {
+      const rt = roomTypes.find((t) => t.id === rm.roomTypeId);
+      const rmBookings = filteredBookings.filter(
+        (b) => b.roomId === rm.id || b.roomNumber === rm.roomNumber
+      );
+      return {
+        id: rm.id,
+        name: rt ? `Room ${rm.roomNumber} (${rt.name})` : `Room ${rm.roomNumber}`,
+        ...accumulateBookings(rmBookings),
+      };
     });
-  }, [roomTypes, rooms, filteredBookings, guests, guestBookingCounts, roomTypeFilter]);
+  }, [reportMode, roomTypes, branchRooms, filteredBookings, entityFilter]);
 
   // Overall Totals & Highlights
   const summary = useMemo(() => {
-    const allUniqueGuests = new Set<string>();
-    const allReturningGuests = new Set<string>();
-    const allNewGuests = new Set<string>();
-
-    filteredBookings.forEach((b) => {
-      const key = b.guestId || b.guestName.trim().toLowerCase();
-      allUniqueGuests.add(key);
-      const guestProfile = guests.find((g) => g.id === b.guestId);
-      const totalStays = guestBookingCounts.get(key) || 1;
-      const isReturning =
-        totalStays > 1 ||
-        guestProfile?.guestType === 'VIP' ||
-        guestProfile?.guestType === 'Regular' ||
-        guestProfile?.guestType === 'Corporate';
-      if (isReturning) allReturningGuests.add(key);
-      else allNewGuests.add(key);
-    });
-
     const totalBookings = pivotRows.reduce((s, r) => s + r.bookingsCount, 0);
-    const totalNights = pivotRows.reduce((s, r) => s + r.totalNights, 0);
     const cashRevenue = pivotRows.reduce((s, r) => s + r.cashRevenue, 0);
     const transferRevenue = pivotRows.reduce((s, r) => s + r.transferRevenue, 0);
     const cardRevenue = pivotRows.reduce((s, r) => s + r.cardRevenue, 0);
@@ -160,10 +156,6 @@ export const HotelOperationsReportsPage: React.FC = () => {
 
     return {
       totalBookings,
-      totalNights,
-      uniqueCustomers: allUniqueGuests.size,
-      returningCustomers: allReturningGuests.size,
-      newCustomers: allNewGuests.size,
       cashRevenue,
       transferRevenue,
       cardRevenue,
@@ -172,7 +164,25 @@ export const HotelOperationsReportsPage: React.FC = () => {
         bestByRevenue && bestByRevenue.totalRevenue > 0 ? bestByRevenue : null,
       mostBooked: mostBooked && mostBooked.bookingsCount > 0 ? mostBooked : null,
     };
-  }, [pivotRows, filteredBookings, guests, guestBookingCounts]);
+  }, [pivotRows]);
+
+  const entityFilterOptions = useMemo(() => {
+    if (reportMode === 'roomTypes' && roomTypes.length > 0) {
+      return [
+        { value: 'ALL', label: 'All Room Types' },
+        ...roomTypes.map((rt) => ({ value: rt.id, label: rt.name })),
+      ];
+    }
+    return [
+      { value: 'ALL', label: 'All Rooms' },
+      ...branchRooms.map((rm) => ({
+        value: rm.id,
+        label: `Room ${rm.roomNumber}`,
+      })),
+    ];
+  }, [reportMode, roomTypes, branchRooms]);
+
+  const entityLabel = reportMode === 'roomTypes' && roomTypes.length > 0 ? 'Room Type' : 'Room';
 
   return (
     <div className="space-y-5">
@@ -193,52 +203,49 @@ export const HotelOperationsReportsPage: React.FC = () => {
       {/* Filter Bar & Summary Highlights */}
       <div className="bg-white rounded-[14px] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          <Dropdown
-            value={roomTypeFilter}
-            onChange={setRoomTypeFilter}
-            size="sm"
-            className="w-48"
-            options={[
-              { value: 'ALL', label: 'All Room Types' },
-              ...roomTypes.map((rt) => ({ value: rt.id, label: rt.name })),
-            ]}
-          />
+          {roomTypes.length > 0 && (
+            <Dropdown
+              value={reportMode}
+              onChange={(v) => {
+                setReportMode(v as 'roomTypes' | 'rooms');
+                setEntityFilter('ALL');
+              }}
+              size="sm"
+              className="w-44"
+              options={[
+                { value: 'roomTypes', label: 'By Room Types' },
+                { value: 'rooms', label: 'By Rooms' },
+              ]}
+            />
+          )}
 
           <Dropdown
-            value={paymentMethodFilter}
-            onChange={setPaymentMethodFilter}
+            value={entityFilter}
+            onChange={setEntityFilter}
             size="sm"
             className="w-48"
-            options={[
-              { value: 'ALL', label: 'All Payment Methods' },
-              { value: 'Cash', label: 'Cash' },
-              { value: 'Bank Transfer', label: 'Bank Transfer' },
-              { value: 'Card', label: 'Card' },
-            ]}
+            options={entityFilterOptions}
           />
 
-          {(roomTypeFilter !== 'ALL' || paymentMethodFilter !== 'ALL') && (
+          {entityFilter !== 'ALL' && (
             <button
               type="button"
-              onClick={() => {
-                setRoomTypeFilter('ALL');
-                setPaymentMethodFilter('ALL');
-              }}
+              onClick={() => setEntityFilter('ALL')}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[12px] text-[#7463A6] hover:bg-[#F1EEF8] font-medium transition-colors cursor-pointer whitespace-nowrap"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Reset Filters
+              Reset Filter
             </button>
           )}
         </div>
 
-        {/* Inline Performance Highlights (No KPI Cards) */}
+        {/* Inline Performance Highlights */}
         <div className="flex flex-wrap items-center gap-4 text-[12.5px] text-[#6E6E6A]">
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span>Top Revenue Room Type:</span>
+            <span>Top Revenue {entityLabel}:</span>
             <span className="text-[#1E1E1E] font-medium">
               {summary.bestByRevenue
-                ? `${summary.bestByRevenue.roomTypeName} (${formatCurrency(
+                ? `${summary.bestByRevenue.name} (${formatCurrency(
                     summary.bestByRevenue.totalRevenue,
                     sym
                   )})`
@@ -247,10 +254,10 @@ export const HotelOperationsReportsPage: React.FC = () => {
           </div>
           <span className="text-[#E2E2DC] hidden sm:inline">|</span>
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span>Most Booked Room Type:</span>
+            <span>Most Booked {entityLabel}:</span>
             <span className="text-[#1E1E1E] font-medium">
               {summary.mostBooked
-                ? `${summary.mostBooked.roomTypeName} (${summary.mostBooked.bookingsCount} bookings)`
+                ? `${summary.mostBooked.name} (${summary.mostBooked.bookingsCount} bookings)`
                 : '—'}
             </span>
           </div>
@@ -263,19 +270,15 @@ export const HotelOperationsReportsPage: React.FC = () => {
           <EmptyState
             icon={FileBarChart2}
             title="No booking records match the selected filters"
-            description="Adjust the room type, payment method, or reporting period to inspect booking performance."
+            description="Adjust the filter or reporting period to inspect booking performance."
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[#FAF9F6] border-b border-[#EFEFEA] text-[11.5px] font-medium text-[#6E6E6A] whitespace-nowrap">
-                  <th className="px-5 py-3.5">Room Type</th>
+                  <th className="px-5 py-3.5">{entityLabel}</th>
                   <th className="px-4 py-3.5 text-right">Bookings</th>
-                  <th className="px-4 py-3.5 text-right">Room Nights</th>
-                  <th className="px-4 py-3.5 text-right">Unique Customers</th>
-                  <th className="px-4 py-3.5 text-right">Returning Customers</th>
-                  <th className="px-4 py-3.5 text-right">New Customers</th>
                   <th className="px-4 py-3.5 text-right">Cash</th>
                   <th className="px-4 py-3.5 text-right">Bank Transfer</th>
                   <th className="px-4 py-3.5 text-right">Card</th>
@@ -286,27 +289,25 @@ export const HotelOperationsReportsPage: React.FC = () => {
               <tbody className="divide-y divide-[#F2F2EE] text-[13px]">
                 {pivotRows.map((row) => {
                   const isTopRevenue =
-                    summary.bestByRevenue?.roomTypeId === row.roomTypeId &&
-                    row.totalRevenue > 0;
+                    summary.bestByRevenue?.id === row.id && row.totalRevenue > 0;
                   const isMostBooked =
-                    summary.mostBooked?.roomTypeId === row.roomTypeId &&
-                    row.bookingsCount > 0;
+                    summary.mostBooked?.id === row.id && row.bookingsCount > 0;
 
                   return (
                     <tr
-                      key={row.roomTypeId}
+                      key={row.id}
                       className="hover:bg-[#FAF9F6]/70 transition-colors whitespace-nowrap"
                     >
                       <td className="px-5 py-3.5 text-[#1E1E1E] font-normal">
                         <div className="flex items-center gap-2">
-                          <span>{row.roomTypeName}</span>
+                          <span>{row.name}</span>
                           {isTopRevenue && (
-                            <span className="px-2 py-0.5 rounded-[5px] bg-[#F1EEF8] text-[#7463A6] text-[10.5px] font-medium">
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#E9F5EE] text-[#15803D] text-[10.5px] font-medium">
                               Top Revenue
                             </span>
                           )}
                           {isMostBooked && !isTopRevenue && (
-                            <span className="px-2 py-0.5 rounded-[5px] bg-[#E8F5F3] text-[#1D7A6E] text-[10.5px] font-medium">
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#E9F5EE] text-[#15803D] text-[10.5px] font-medium">
                               Most Booked
                             </span>
                           )}
@@ -314,18 +315,6 @@ export const HotelOperationsReportsPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3.5 text-right text-[#1E1E1E] tabular-nums">
                         {row.bookingsCount}
-                      </td>
-                      <td className="px-4 py-3.5 text-right text-[#6E6E6A] tabular-nums">
-                        {row.totalNights}
-                      </td>
-                      <td className="px-4 py-3.5 text-right text-[#1E1E1E] tabular-nums">
-                        {row.uniqueCustomers}
-                      </td>
-                      <td className="px-4 py-3.5 text-right text-[#1D7A6E] tabular-nums">
-                        {row.returningCustomers}
-                      </td>
-                      <td className="px-4 py-3.5 text-right text-[#7463A6] tabular-nums">
-                        {row.newCustomers}
                       </td>
                       <td className="px-4 py-3.5 text-right text-[#6E6E6A] tabular-nums">
                         {formatCurrency(row.cashRevenue, sym)}
@@ -353,18 +342,6 @@ export const HotelOperationsReportsPage: React.FC = () => {
                     {summary.totalBookings}
                   </td>
                   <td className="px-4 py-3.5 text-right tabular-nums">
-                    {summary.totalNights}
-                  </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums">
-                    {summary.uniqueCustomers}
-                  </td>
-                  <td className="px-4 py-3.5 text-right text-[#1D7A6E] tabular-nums">
-                    {summary.returningCustomers}
-                  </td>
-                  <td className="px-4 py-3.5 text-right text-[#7463A6] tabular-nums">
-                    {summary.newCustomers}
-                  </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums">
                     {formatCurrency(summary.cashRevenue, sym)}
                   </td>
                   <td className="px-4 py-3.5 text-right tabular-nums">
@@ -388,3 +365,4 @@ export const HotelOperationsReportsPage: React.FC = () => {
     </div>
   );
 };
+

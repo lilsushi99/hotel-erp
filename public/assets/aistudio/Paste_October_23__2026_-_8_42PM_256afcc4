@@ -1,0 +1,994 @@
+# LUMINA HOTEL SUITES — MASTER FINAL CORRECTION PROMPT
+## UI Refinement, Business Logic, Reporting, Branding, Operational Modules & Role-Based Access
+
+You are working on the existing Lumina Hotel Suites hotel management application. This is a final product-quality correction pass before launch.
+
+The application has already been built. Your job is to **inspect the existing code, implement the corrections below directly, preserve approved functionality, and verify the complete workflow**.
+
+Do not rebuild the application from scratch. Do not replace functioning components with mock implementations. Do not remove existing features unless explicitly instructed below. Do not stop after producing a plan or changing only the visual appearance.
+
+Use the current framework, architecture, routes, shared components, data structures, and persistence mechanism. Reuse existing components whenever possible.
+
+## A. Non-negotiable implementation rules
+
+1. Inspect the project before modifying it. Identify the existing routes, data models, shared state, role/permission logic, and design tokens.
+2. Preserve the changes already implemented in previous correction passes.
+3. Use Outfit throughout the application.
+4. Maintain the existing premium light SaaS design: off-white canvas, white cards, charcoal text, restrained secondary text, and the configurable brand accent.
+5. Use custom rounded dropdowns, calendars, time pickers, and form controls. Remove default browser dropdown styling from the affected interfaces.
+6. Keep ordinary table text at a consistent regular weight. Use bold selectively for genuine visual hierarchy.
+7. Keep table headers and important values on one line. Use horizontal scrolling when necessary.
+8. Preserve existing CRUD operations, validation, navigation, and data relationships.
+9. All changes must be functional. Filters must filter, buttons must act, charts must use the relevant data, and settings must affect the application.
+10. Do not fabricate financial records, customer activity, stock movements, or booking results.
+11. If the application is frontend-only, use its existing persistence mechanism and explain any capability that genuinely requires backend support.
+12. Test changes against the actual application rather than assuming that a visually correct component is functional.
+
+---
+
+## B. Sidebar customization and navigation
+
+### B1. Standard sidebar collapse setting
+
+Add a setting under **Hotel Settings** that allows the user to choose whether the Standard Sidebar displays its full navigation or a collapsed navigation.
+
+Provide two options:
+- Full Navigation.
+- Collapsed Navigation.
+
+When Full Navigation is selected, preserve the existing standard sidebar in its current full-view design.
+
+When Collapsed Navigation is selected, show only the parent navigation groups:
+
+- Command Center / Overview.
+- Hotel Operations.
+- Sales & Services.
+- Laundry.
+- Inventory.
+- Finance & Intelligence.
+- Administration.
+
+Hide the individual child navigation links from the sidebar in this mode. The parent groups must remain accessible and expandable through an appropriate interaction.
+
+Do not remove child pages or their routes. Collapsing the sidebar must affect navigation presentation only.
+
+### B2. Rib-cage sidebar behaviour
+
+When the Rib-cage Sidebar design is selected, use the parent-group-and-connector navigation pattern already established.
+
+Its collapsed state should display the parent categories and their associated navigation structure without unnecessarily displaying every child link at once. Preserve the existing rib-cage design and its active-child behaviour.
+
+The Standard Sidebar collapse setting and the Rib-cage Sidebar style setting must work together without conflicting.
+
+Store these preferences using the application's existing settings persistence mechanism.
+
+### B3. Module-aware navigation
+
+The sidebar must reflect the operational modules enabled for the current account and the current user's permissions.
+
+Disabled modules must not remain visible as empty or inaccessible sections.
+
+The detailed rules for this behaviour are specified in Section M.
+
+---
+
+## C. Overview dashboard
+
+### C1. Independent date filters
+
+Correct the current filter-state conflict.
+
+The main Overview date filter should control:
+- Overview KPI cards.
+- Overview Revenue Trend's default reporting period.
+- Overview Expenses' default reporting period.
+
+It must not affect Recent Bookings or Alerts & Exceptions.
+
+However, the Revenue Trend and Expenses sections must each maintain their own independent date-filter state.
+
+Specifically:
+- Changing the Expenses date filter must not change the Revenue Trend.
+- Changing the Revenue Trend date filter must not change Expenses.
+- Changing either chart's local date filter must not unexpectedly change the other chart or overwrite the global date selection.
+- Changing the global Overview period may update the default period for the two charts, but must not continually overwrite a local period after the user has independently changed it. Implement a clear, predictable filter-state model.
+
+Retain the existing date options and Custom Range calendar.
+
+### C2. Brand accent must control the Revenue Trend chart
+
+The Revenue Trend area chart currently remains purple after the brand color has been changed to blue.
+
+Correct the chart styling so its accent-driven elements use the active brand accent.
+
+For example:
+- Purple accent selected → the chart uses the purple accent.
+- Blue accent selected → the chart uses blue.
+- Green accent selected → the chart uses green.
+- A custom HEX color selected → the chart uses the selected custom accent.
+
+Do not hardcode purple into the chart component.
+
+Use the shared theme/design tokens to style the chart line, area fill, selected controls, active states, and other accent-driven elements. Derive suitable lighter shades from the current accent for the area fill.
+
+Keep chart gridlines, neutral axes, and semantic colors distinct from the accent where appropriate.
+
+### C3. Overview chart interaction styling
+
+Remove the unwanted black rectangular outline that appears around charts when they are clicked or focused.
+
+Apply this correction to all relevant Overview charts, including:
+- Revenue Trend area chart.
+- Expenses chart.
+- Revenue by Department pie chart.
+- Any other chart currently showing the same unwanted outline.
+
+Remove the intrusive default focus border from the chart container itself without breaking keyboard accessibility. Use a deliberate, subtle accessible focus treatment for interactive controls rather than a black rectangle around the entire chart.
+
+Preserve chart tooltips, legends, hover states, and other useful interactions.
+
+### C4. Overview Expenses pie-chart labels
+
+Review the Overview Expenses pie chart. Where feasible, improve its labels so figures such as 800K or 10M remain readable and do not overlap or get clipped.
+
+Use compact number formatting for labels where appropriate, but keep exact figures available in tooltips.
+
+If displaying every value outside the pie becomes cluttered or technically unsuitable, preserve the existing clean design and use tooltips rather than forcing labels into an unreadable layout.
+
+---
+
+## D. Bookings — toolbar and booking workflow
+
+### D1. Toolbar order
+
+On the Bookings page, arrange the toolbar controls in this order:
+
+1. View dropdown.
+2. Date dropdown.
+3. New Booking button.
+
+The View dropdown must contain:
+- Table View.
+- Timeline View.
+
+The date dropdown must support the existing options, including Today, Last 7 Days, Last 30 Days, and Custom Range.
+
+Keep the date dropdown and New Booking button on the same horizontal row as the View dropdown wherever the viewport permits.
+
+Preserve the existing table columns, search, booking-status filter, payment-status filter, room-type filter, and timeline functionality.
+
+### D2. Convert New Booking into a two-step progress form
+
+The current booking form is too crowded. Replace its single crowded layout with a two-step form.
+
+**Step 1 — Guest & Stay Details**
+
+Include:
+- Returning Guest Lookup.
+- Full Name.
+- Phone Number.
+- Email.
+- Room Type, where applicable.
+- Room Selection.
+- Room Rate.
+- Number of Nights.
+- Check-in Date.
+- Check-in Time.
+- Check-out Date.
+- Check-out Time.
+
+Organize the fields into a consistent grid with matching widths and vertical alignment. Do not squeeze the fields together merely to fit a fixed number of columns.
+
+Returning Guest Lookup should remain easy to find at the top. When an existing customer is selected, populate the relevant available details.
+
+Provide a clear Next action to proceed to Step 2.
+
+**Step 2 — Payment & Confirmation**
+
+Include:
+- Payment Method.
+- Payment Status.
+- Booking Status.
+- Calculated Total Amount.
+- A primary **Confirm Booking** button.
+
+Do not use “Confirm Reservation” as the primary action label.
+
+Provide a Back action that returns to Step 1 and preserves every field the user has entered.
+
+### D3. Progress indicator
+
+At the top of the form, display two numbered circular steps connected by a progress line.
+
+- The active step uses the current brand accent.
+- The completed step has a clear completed state.
+- The next step remains neutral until reached.
+- The progress line changes appropriately as the user advances.
+
+Use the active brand accent, not hardcoded purple.
+
+Do not implement a swipe-only interaction. Provide clear Next and Back buttons so the form works on desktop and mobile.
+
+### D4. Form validation and submission
+
+Validate the relevant required fields before proceeding or confirming.
+
+Prevent duplicate or conflicting reservations for the same room during overlapping stay dates.
+
+The total amount must be calculated from the applicable room rate and stay duration using the existing pricing model. Do not silently change the pricing model.
+
+Ensure that Confirm Booking creates one booking record and updates all relevant views. Prevent duplicate submissions.
+
+---
+
+## E. Rooms & Pricing — booking and occupancy integrity
+
+No visual changes are requested for the Rooms & Pricing page. Preserve its current approved design.
+
+However, verify and correct the underlying room-status logic.
+
+A future booking must make the room unavailable for overlapping reservations during the booked dates. It must not make the room appear available to another guest for the same dates.
+
+Distinguish between reservation availability and physical room status:
+
+- **Available:** no current occupancy or blocking operational condition.
+- **Occupied:** a guest has checked in and is currently staying in the room.
+- **Cleaning:** the room requires cleaning after checkout or during the relevant operational workflow.
+- **Maintenance:** the room is unavailable because of a maintenance condition.
+
+A future confirmed reservation should block overlapping bookings without falsely implying that the guest is already physically occupying the room.
+
+When a guest checks in, the room should automatically transition to Occupied. When the guest checks out, the room should follow the existing checkout/cleaning workflow before becoming Available again.
+
+Do not allow room status changes to bypass an active stay or override maintenance restrictions incorrectly.
+
+If the hotel has no room types configured, allow the user to add rooms without requiring a room type. The room-type field should be hidden or optional as appropriate.
+
+When room types exist, continue supporting room-type assignment.
+
+---
+
+## F. Customer Management CRM
+
+The existing Customer Management page is approved. Do not redesign it unnecessarily.
+
+Preserve:
+- Current KPI cards.
+- Date filter.
+- Search.
+- Room-type filtering.
+- Sorting.
+- Customer profile details.
+- Shared customer identity logic.
+
+Ensure that the existing CRM remains consistent with booking and transaction records.
+
+Do not add a manual customer-creation workflow that duplicates the existing customer identity model.
+
+---
+
+## G. Hotel Operations — Reports
+
+Redesign the existing Hotel Operations Reports page into a practical room-performance and payment-summary report.
+
+The purpose is to show management how many bookings were generated by each room type or individual room and how much revenue was collected through each payment method.
+
+### G1. Filters
+
+Keep a date filter at the top.
+
+Add a reporting dimension selector with two options:
+- Room Types.
+- Rooms.
+
+Add the existing reporting-period controls and Custom Range support.
+
+Remove the Payment Method filter from this report. Payment methods are already represented by dedicated columns, so the additional filter is redundant.
+
+### G2. Dynamic room-type versus room reporting
+
+When **Room Types** is selected, group bookings by room type.
+
+When **Rooms** is selected, group bookings by individual room number.
+
+The table's first column heading and values must change to match the selected reporting dimension.
+
+Examples:
+- Room Types view: Presidential Suite, Executive Suite, Deluxe Suite.
+- Rooms view: Room 401, Room 402, Room 301, Room 101.
+
+Do not require a room type to exist for reporting to work. If the hotel has not configured room types, allow the Rooms view to operate normally. If there are no room types, default to Rooms where appropriate.
+
+Do not create artificial room categories merely to populate the report.
+
+### G3. Table columns
+
+Use the following columns:
+
+Room Type / Room | Bookings | Cash | Bank Transfer | Card | Revenue Generated | Revenue Share
+
+The first column is dynamic, as described above.
+
+For each room type or room:
+- Bookings counts the relevant bookings within the selected period.
+- Cash displays the amount of revenue actually collected through Cash.
+- Bank Transfer displays the amount actually collected through Bank Transfer.
+- Card displays the amount actually collected through Card, using the application's existing card-payment mapping.
+- Revenue Generated displays the appropriate total for the selected reporting period.
+- Revenue Share displays the share of total report revenue attributable to that row.
+
+Use actual payment records and avoid counting unpaid booking amounts as collected cash or revenue.
+
+If the system supports POS Terminal as a distinct payment method, map it consistently into the existing reporting model and show it separately only if it is a genuine distinct payment channel. Do not double-count POS transactions as both Card and POS Terminal.
+
+Include totals that reconcile with the displayed rows.
+
+### G4. Performance indicators
+
+Retain concise summary text above or near the table:
+
+- **Top Revenue Room Type** / **Top Revenue Room**, depending on the selected dimension.
+- **Most Booked Room Type** / **Most Booked Room**, depending on the selected dimension.
+
+Use the current rounded green-style tag treatment for the appropriate table rows:
+- Most Booked.
+- Top Revenue.
+
+These tags should be derived from actual report results, not hardcoded. If the top room by bookings is different from the top room by revenue, assign the tags independently.
+
+Use the active design system's semantic success treatment for these tags; do not use a hardcoded accent color if it conflicts with the configured theme.
+
+### G5. Reporting calculations
+
+Ensure the table responds correctly to:
+- Reporting period.
+- Selected reporting dimension.
+- New or deleted bookings.
+- Booking status.
+- Payment status.
+- Recorded payments and applicable adjustments.
+
+Define which booking statuses qualify for reporting. Cancelled bookings must not inflate valid booking totals or revenue.
+
+Use consistent calculations across the application. Do not fabricate bookings, customers, or payments to make the report look populated.
+
+---
+
+## H. Bar & POS — product-card typography and theme
+
+The Bar & POS interface is otherwise approved.
+
+Correct the typography hierarchy in beverage product cards.
+
+Use the following hierarchy:
+- Beverage name: Bold, as the main product identifier.
+- Stock quantity badge: Regular font weight.
+- Price: Regular or Medium font weight.
+- Add button: Regular or Medium font weight.
+
+Only the beverage name should receive the strongest font emphasis. Avoid giving the quantity, price, and Add button the same bold treatment.
+
+Preserve the existing product cards, icons, stock quantities, pricing, search, quick picks, and sales-ledger functionality.
+
+### Theme correction
+
+The Add button currently changes to purple even after the brand color has been changed to blue.
+
+Correct this and every similar hardcoded accent in Bar & POS.
+
+Buttons, active states, selected items, focus treatments, and other accent-driven components must use the configured brand accent. Do not hardcode purple into individual components.
+
+Changing the brand color must not change the actual product price, stock data, or intentional semantic states.
+
+---
+
+## I. Kitchen & Restaurant — product-card typography and theme
+
+The Kitchen & Restaurant interface is otherwise approved.
+
+Apply the same product-card typography hierarchy:
+- Food name: Bold.
+- Quantity/available-portions badge: Regular.
+- Price: Regular or Medium.
+- Add button: Regular or Medium.
+
+Only the food name should receive the strongest emphasis.
+
+Ensure the selected brand accent controls the Add button and other accent-driven elements. Remove hardcoded purple that overrides the configured brand color.
+
+Preserve the existing menu, food inventory connections, kitchen ordering, ledger, payment statuses, and existing working interactions.
+
+---
+
+## J. Sales & Services — Reports
+
+Keep the Sales & Services Reports page. Refine its layout and calculations without rebuilding it unnecessarily.
+
+### J1. Top control row
+
+Place these controls on the same horizontal row:
+
+- Search field.
+- Department dropdown.
+
+The Department dropdown should support the applicable options, including All Departments, Bar, and Restaurant.
+
+Remove the Payment Method filter. The report already has dedicated payment-method columns and summary figures.
+
+The top controls must remain aligned and responsive.
+
+### J2. Summary cards
+
+Arrange the summary cards directly below the control row in a consistent grid.
+
+Include:
+- Bar & POS Revenue.
+- Kitchen & Restaurant Revenue.
+- Top Item Sold under Bar & POS.
+- Top Item Sold under Kitchen & Restaurant.
+
+The two Top Item Sold summaries must be distinct. Each should identify the best-selling item in its own department using actual order data.
+
+Do not position figures at inconsistent heights or place one summary outside the grid.
+
+Use the same consistent KPI styling and card heights as the rest of the application.
+
+### J3. Report table
+
+Preserve the existing report columns and their intended meaning.
+
+The table should include:
+- Product / Item Name.
+- Department.
+- Number of Orders.
+- Quantity Sold.
+- Cash.
+- Bank Transfer.
+- Card.
+- Room Charge.
+- Revenue Generated.
+
+Keep column headings on one line. Use horizontal scrolling when needed.
+
+Allow the user to view All Departments, Bar, or Restaurant and to search for an item.
+
+The report must answer:
+- How many times was an item ordered?
+- How many units were sold?
+- How much was collected through Cash?
+- How much was collected through Bank Transfer?
+- How much was collected through Card?
+- How much was charged to guest rooms?
+- What total revenue was generated?
+
+Use actual order and payment data.
+
+Do not double-count room charges as both a settled payment and a separate payment-method amount. An unpaid room charge must not be reported as collected cash, transfer, or card revenue.
+
+Remove the redundant All Payment Methods filter.
+
+---
+
+## K. Laundry — Logger, Storage and CRM
+
+### K1. Laundry Logger — edit and progress actions
+
+Preserve the current Laundry Logger layout, date filter, search, garment entry, and working order form. No general redesign is requested.
+
+However, refine the table's Actions column.
+
+Separate the editing function from the operational progress function.
+
+The table should have a dedicated **Actions** column for moving the order through its service workflow and a separate **Edit** column for modifying or deleting the order.
+
+The Edit column should contain:
+- Edit icon.
+- Delete action.
+
+Clicking Edit must open the existing laundry order form with the current order's data prefilled. Saving should update the same order record rather than create a duplicate.
+
+Deleting an order should require confirmation and update the relevant lists and summaries.
+
+### K2. Service-dependent progress workflow
+
+The required service determines which stages an order must pass through.
+
+The available progress stages should remain consistent with the existing application:
+- Received.
+- Washing.
+- Drying.
+- Ironing.
+- Ready for Collection.
+- Collected.
+
+Do not force every order through every stage. A service that does not require washing or drying should skip those stages.
+
+Examples:
+- **Washing only:** Received → Washing → Ready for Collection → Collected.
+- **Ironing only:** Received → Ironing → Ready for Collection → Collected.
+- **Wash & Iron:** Received → Washing → Ironing → Ready for Collection → Collected.
+- **Dry Cleaning:** Received → the applicable dry-cleaning stage → Ready for Collection → Collected.
+- **Wash, Iron & Starch:** Received → Washing → Ironing/Starching where supported → Ready for Collection → Collected.
+
+If the current application has a different, established service-stage mapping, preserve the valid existing service definitions while implementing the same principle: only applicable stages should be required.
+
+Use a compact arrow/advance control in the Actions column. Its accessible tooltip should identify the next action, such as Move to Washing or Mark Ready.
+
+The visible control must not overflow its table cell. Do not display multiple long action labels simultaneously.
+
+Prevent users from skipping required stages accidentally. A user must not be able to mark an order Collected before it is Ready for Collection.
+
+### K3. Storage synchronisation
+
+When an order reaches Ready for Collection, it should appear in Storage as awaiting collection.
+
+When the order is marked Collected in Laundry Logger, its status should update in Storage automatically.
+
+Storage must not contain orders that are still in progress.
+
+Do not create a second independent laundry record for Storage. Use the same underlying laundry order.
+
+### K4. Laundry CRM
+
+Remove the KPI cards from Laundry CRM.
+
+Do not display:
+- Laundry Customers.
+- Returning Customers.
+- Total Laundry Spend.
+- New Customers as separate KPI cards.
+
+Keep Laundry CRM as a customer directory.
+
+Place the search field, Service Type filter, and sorting controls in a clean horizontal toolbar immediately above the table.
+
+Preserve the current useful columns:
+Customer ID | Customer Name | Phone Number | Address / Room | Customer Type | Laundry Orders | Total Garments | Total Spend | Last Order | Actions
+
+Keep all headings on one line. Use horizontal scrolling if needed.
+
+Preserve customer profile access and shared customer identity. Do not introduce duplicate customer records.
+
+### K5. Laundry Reports decision
+
+Do not add a separate Laundry Reports page in this correction pass.
+
+The Laundry Logger already provides the operational order list and progress workflow, while Laundry CRM provides customer-level history. A separate report page is not necessary until a concrete reporting requirement is defined.
+
+Keep the Laundry navigation focused on the existing operational sections. Do not add more navigation items merely to make every module look symmetrical.
+
+---
+
+## L. Inventory — Store Keeper and Expenses
+
+### L1. Store Keeper
+
+Preserve the current approved Store Keeper screen.
+
+Do not reintroduce Stock Register, Stock Movement, or Audit History tabs.
+
+Preserve the existing item-management table:
+SKU | Item Name | Department | Unit | Quantity | Actions
+
+Preserve the department and stock-status filters, category management, and working Edit/Delete actions.
+
+Do not expose item creation, stock changes, category management, or pricing changes to operational attendants who do not have permission to manage inventory.
+
+The broader access rules are specified in Section M.
+
+### L2. Expenses — KPI cards
+
+Remove misleading expense KPI cards such as:
+- Approved Expense.
+- Pending Expense Approval.
+- Largest Expense, if it is being used as a generic operational metric without clear value.
+
+There is no separate expense-approval workflow in the intended model.
+
+Use sensible expense metrics such as:
+- Today's Expense.
+- Total Expense for the selected reporting period.
+- Monthly Average Expense.
+
+Use up to three KPI cards if the available data supports them. If the existing four-card layout would make the page crowded or misleading, reduce the number rather than inventing metrics.
+
+All figures must be calculated from actual expense records and respect the selected reporting period.
+
+### L3. Record Expense form
+
+Preserve:
+- Date.
+- Expense Category.
+- Description.
+- Department.
+- Amount.
+- Recorded By.
+
+Remove Payment Method from the form and expense table.
+
+Recorded By must be populated from the logged-in user's account. Do not hardcode a staff member's name.
+
+The Department dropdown must begin with **All Departments**, followed by the relevant individual departments, including Rooms, Bar, Restaurant, Laundry, Housekeeping/Cleaning, Maintenance, and Administration.
+
+Selecting All Departments means the expense is a shared or general expense that is not assigned to one specific department. It must not mean the expense should be copied into every department.
+
+Do not distribute a shared expense equally across departments unless a separate, explicitly configured allocation feature is introduced in a future requirement.
+
+### L4. Expenses table
+
+Use the relevant columns:
+Expense ID | Date | Category | Description | Recorded By | Amount | Department | Actions
+
+Keep category names as plain text, without colored pills or decorative dots.
+
+Preserve the existing Edit/Delete actions and confirmation before permanent deletion.
+
+Do not reintroduce approval/rejection statuses or Payment Method.
+
+---
+
+## M. Operational Modules, staff roles and permissions
+
+This is a critical business-logic requirement.
+
+The application must distinguish between:
+1. A module being enabled for the hotel.
+2. A module being visible to a particular user.
+3. A user having permission to view data.
+4. A user having permission to create, edit, delete, or manage data.
+
+Do not treat these as interchangeable.
+
+### M1. Operational Module settings control navigation
+
+When an operational module is disabled, remove its navigation destination and its associated child links from the normal user interface.
+
+Examples:
+
+**Scenario A — Only Hotel Operations enabled**
+
+If Bar & POS, Kitchen & Restaurant, and Laundry are disabled, the navigation should show Overview and Hotel Operations, subject to the current user's permissions.
+
+Do not leave empty Sales & Services or Laundry sections.
+
+**Scenario B — Only Sales & Services enabled**
+
+If Hotel Operations and Laundry are disabled, but Bar & POS and Kitchen & Restaurant are enabled, the navigation should show Overview and Sales & Services, with the enabled child destinations and Reports.
+
+Do not show disabled children.
+
+**Scenario C — Only Kitchen & Restaurant enabled within Sales & Services**
+
+Within Sales & Services, show Kitchen & Restaurant and Reports. Hide Bar & POS.
+
+**Scenario D — Only Laundry enabled**
+
+Show Overview and Laundry, subject to the user's permissions. Hide disabled operational sections and unrelated administration screens.
+
+**Scenario E — Everything disabled**
+
+Do not leave disabled operational sections visible as empty containers. Preserve only the appropriate landing page and any administrative settings the current authorized administrator needs to re-enable modules.
+
+The exact menu shown must also respect the signed-in user's role and permissions.
+
+### M2. Overview access
+
+The Manager, Supervisor, and Director may have broader Overview access according to the existing role model.
+
+Operational attendants must not automatically receive access to all hotel-wide Overview metrics simply because the Overview route exists.
+
+For example:
+- A Bar Attendant should not see all hotel financial and occupancy metrics by default.
+- A Restaurant Attendant should not see unrelated departmental information by default.
+- A Laundry Attendant should not see unrelated room or financial management data by default.
+- A Store Keeper should not automatically see every administrative section.
+
+If the current Overview is a shared route, enforce the appropriate access and data scope based on the signed-in user's role.
+
+Do not expose restricted data by hiding navigation alone. Apply access checks to page rendering, actions, and data access within the capabilities of the existing architecture.
+
+### M3. Reception / Booking Attendant
+
+A user assigned to reception or room bookings should be able to:
+- Access the booking workflow.
+- Create bookings.
+- View the bookings needed for their work.
+- Perform only the booking actions allowed by their assigned role.
+
+They must not be able to change room pricing or edit room configuration.
+
+Rooms & Pricing may remain visible in a read-only or limited operational view where needed, but pricing and room-configuration controls must be disabled or hidden for this role.
+
+The user may only change room operational status where explicitly permitted, such as setting a room to Cleaning or Maintenance.
+
+Do not allow a reception attendant to bypass the restrictions by opening an edit modal directly.
+
+### M4. Bar Attendant
+
+A Bar Attendant should be able to:
+- Access the Bar & POS operational interface.
+- Create sales and orders.
+- Select products.
+- Enter permitted order/payment information.
+- View the sales records necessary for the job, subject to the existing permission design.
+
+The attendant must not be able to:
+- Change beverage prices.
+- Create or edit inventory products.
+- Change stock-management settings.
+- Manage unrelated hotel operations.
+- Access unrelated administrative screens.
+
+Sales reports, where available to this role, must be read-only.
+
+### M5. Restaurant Attendant
+
+A Restaurant Attendant should be able to:
+- Access Kitchen & Restaurant operational ordering.
+- Record permitted sales and orders.
+- View the records necessary for their work.
+
+They must not be able to:
+- Change food prices.
+- Edit Food Inventory records.
+- Change inventory-management settings.
+- Edit unrelated customer or room configuration.
+- Access unrelated administrative screens.
+
+Restaurant reports must be read-only wherever the role is allowed to see them.
+
+### M6. Laundry Attendant
+
+A Laundry Attendant should be able to:
+- Access Laundry Logger.
+- Record laundry orders.
+- Update the permitted laundry service progress.
+- Mark orders ready for collection or collected where allowed.
+- Access the relevant laundry records needed for the job.
+
+They must not be able to edit room pricing, inventory, unrelated customer-management settings, or administrative configuration.
+
+Laundry CRM should be read-only for this role unless the existing permission model explicitly grants more access.
+
+### M7. Store Keeper
+
+A Store Keeper should primarily access:
+- The Store Keeper section.
+- Only the Overview or operational landing page explicitly permitted for that role.
+
+Do not automatically grant access to Administration, Finance & Intelligence, Hotel Operations, or unrelated sales sections.
+
+The Store Keeper may manage the stock tasks permitted by the existing role model, but must not gain access to hotel-wide configuration or financial data simply because they have a Store Keeper account.
+
+### M8. Manager, Supervisor and Director
+
+Preserve the existing broader access intended for management roles.
+
+The authorized management roles should be able to access the operational and administrative features appropriate to their permissions, including configuration, pricing, reporting, staff management, and operational modules.
+
+Do not blindly grant every permission to all roles if the existing application distinguishes between Manager, Supervisor, and Director.
+
+Use the existing Role Permission Matrix as the source of truth where it is already implemented.
+
+### M9. Permissions must control actions, not just menus
+
+Implement or correct the permission checks so that restricted actions cannot be accessed through:
+- Direct route navigation.
+- Opening hidden modals.
+- Manually triggering edit/delete buttons.
+- Calling shared component handlers from another page.
+- Navigating to a disabled module's URL.
+
+Use centralized permission checks where practical.
+
+For restricted controls:
+- Hide controls that are entirely unavailable to the role.
+- Use disabled styling for controls that must remain visible for context, such as room-pricing information.
+- Provide a concise explanation where useful.
+- Do not rely on visual blur alone as a security or permission mechanism.
+
+If backend authorization does not exist yet, implement the frontend permission model using the existing authenticated-user state, but document that frontend restrictions alone are not sufficient security for a production multi-user deployment.
+
+### M10. Role-specific navigation examples
+
+Ensure these examples work correctly:
+
+| User role / access | Expected navigation and access |
+|---|---|
+| Reception / Booking Attendant | Bookings and permitted room-status actions; no room-pricing edits |
+| Bar Attendant | Bar & POS sales workflow; no beverage-price or inventory-management edits |
+| Restaurant Attendant | Restaurant sales workflow; no food-price or inventory-management edits |
+| Laundry Attendant | Laundry Logger and permitted progress actions |
+| Store Keeper | Store Keeper and explicitly permitted landing page |
+| Manager / Supervisor / Director | Management access according to their assigned permissions |
+
+These are examples of the intended policy, not an instruction to hardcode one fixed sidebar for every account. Build the navigation from enabled modules and the current user's assigned permissions.
+
+---
+
+## N. Finance & Intelligence — final chart and ledger corrections
+
+### N1. Revenue Versus Expense chart
+
+Preserve the existing financial KPI cards and Revenue Versus Expense chart.
+
+Reduce the size of the legend markers beside Revenue and Expense. The marker circles should be smaller than or visually subordinate to the legend text.
+
+Keep Expense semantically red and Revenue semantically green. These are meaningful financial series colors and should not automatically become the brand accent.
+
+Correct the chart-container focus issue described in Section C so clicking a chart does not display an unwanted black rectangle around it.
+
+### N2. Revenue by Department
+
+Preserve the Revenue by Department pie chart.
+
+Remove hardcoded purple for the Rooms slice if that color is only being used as an accent-driven series color.
+
+Use the configurable accent palette or a coherent chart palette that responds to the current brand theme, while keeping categories distinguishable.
+
+The Rooms slice should not remain purple after the brand color is changed if that purple is intended to represent the old brand accent.
+
+Do not force every slice to the same color. Distinct departments must remain distinguishable.
+
+### N3. Expenses by Department
+
+Preserve the Expenses by Department chart and its current reporting logic.
+
+Do not add an All Departments category that distributes the same shared expense equally across departments.
+
+A shared expense assigned to All Departments must be treated as a general/unallocated expense unless the application has a separate explicit allocation mechanism. Do not invent equal distribution across departments.
+
+Ensure that department totals and overall totals reconcile.
+
+### N4. Expenses by Category chart
+
+Move the bar plotting area closer to its labels by reducing excessive spacing between category text and the bars.
+
+Keep long category labels readable and prevent overlap or clipping.
+
+Preserve the current chart data and responsive layout.
+
+Use the shared accent system for accent-driven series where appropriate. Retain semantic colors when a chart deliberately communicates financial meaning.
+
+### N5. Remove Financial Transaction Ledger from the Financial Report page
+
+Remove the **Financial Transaction Ledger** section from the visible Financial Intelligence page.
+
+Comment out or safely disable its page-level rendering rather than permanently deleting the underlying implementation, so it can be restored later if required.
+
+Do not break the existing financial data structures or revenue/expense calculations when removing the visible section.
+
+The Financial Intelligence page should focus on:
+- Total Revenue.
+- Total Expense.
+- Net Profit.
+- Outstanding Receivables.
+- Revenue Versus Expense.
+- Revenue by Department.
+- Expenses by Department.
+- Expenses by Category.
+- Revenue by Payment Method.
+
+### N6. Revenue by Payment Method
+
+Preserve the existing Revenue by Payment Method chart.
+
+Ensure it clearly distinguishes the actual collected amounts for the application's supported payment methods, such as:
+- Cash.
+- Bank Transfer.
+- Card.
+- POS Terminal, only where it is a genuinely separate payment channel in the existing data model.
+
+Do not count the same transaction in two payment-method categories.
+
+If the chart uses the brand accent as its primary series color, it must respond to the configured accent. If the chart uses a deliberate multi-series palette, preserve the distinction between payment methods while ensuring no obsolete hardcoded brand purple remains.
+
+---
+
+## O. Brand color customization — application-wide correction
+
+The configurable brand accent is a shared design-system property, not a local button color.
+
+Correct all remaining hardcoded accent colors throughout the application.
+
+When a user changes the accent in Hotel Settings, including by entering a custom HEX code, all relevant accent-driven UI elements must update consistently.
+
+This includes, where applicable:
+- Primary buttons.
+- Add buttons in Bar & POS and Kitchen & Restaurant.
+- Active navigation labels and icons.
+- Rib-cage navigation connectors.
+- Selected navigation backgrounds.
+- Selected tabs and dropdown options.
+- Focus and selection treatments.
+- Progress indicators.
+- Selected date controls.
+- Relevant chart series and area fills.
+- Other elements that currently use the old brand accent.
+
+Do not hardcode a replacement color such as blue. The user may select blue, green, orange, purple, or a custom color.
+
+Use shared design tokens or CSS custom properties and derive lighter/darker accent variants appropriately.
+
+### Preserve semantic and user-selected colors
+
+Do not blindly recolor every colored element.
+
+Preserve:
+- Expense-category colors deliberately selected by the user.
+- Semantic warning and error colors.
+- Revenue/Expense series colors where they intentionally communicate financial meaning.
+- Distinct chart-category colors required for readability.
+
+Only recolor elements that are intended to represent the brand accent or its derived accent shades.
+
+If the current implementation uses hardcoded purple for something that should follow the brand, replace that hardcoding with the shared accent token.
+
+Ensure that switching from blue back to purple or orange also updates the relevant elements. The theme must work in both directions, not only when moving away from purple.
+
+---
+
+## P. Final implementation and regression testing
+
+After completing the changes, run through the application systematically.
+
+### Navigation and settings
+- Test Standard Sidebar Full Navigation.
+- Test Standard Sidebar Collapsed Navigation.
+- Test Rib-cage Sidebar.
+- Test accent-color changes and Reset to Default.
+- Test enabled/disabled operational modules.
+- Test at least one account from each relevant role category.
+
+### Overview
+- Change the global date filter.
+- Change Expenses' date filter independently.
+- Change Revenue Trend's date filter independently.
+- Verify the filters no longer affect each other incorrectly.
+- Change the brand accent and confirm the Revenue Trend follows it.
+- Click the charts and confirm the unwanted black outlines are gone.
+
+### Bookings and rooms
+- Test both booking-form steps.
+- Navigate Back and verify entered values remain.
+- Confirm a booking.
+- Verify the same room cannot be booked for overlapping dates.
+- Check the room's availability, check-in, occupancy, checkout, and cleaning workflow.
+- Verify that users without pricing permission cannot edit room rates.
+
+### Reports
+- Switch Hotel Operations Reports between Room Types and Rooms.
+- Verify booking counts, cash, bank transfer, card, revenue, revenue share, and performance tags.
+- Verify Sales & Services report filtering, summary cards, item totals, and payment breakdown.
+- Confirm that unpaid transactions are not misrepresented as collected money.
+
+### Sales & Services
+- Verify the product-card typography.
+- Change the brand accent and confirm Add buttons update.
+- Confirm sales and kitchen ordering remain functional.
+
+### Laundry
+- Verify editing and deleting orders.
+- Verify service-dependent progress stages.
+- Confirm that Ready for Collection orders appear in Storage.
+- Confirm that Collected orders update Storage.
+- Verify Laundry CRM has no KPI cards.
+
+### Expenses and Financial Intelligence
+- Verify the expense KPI calculations.
+- Confirm that expenses no longer have an approval workflow or Payment Method field.
+- Confirm that All Departments expenses are not copied into every department.
+- Verify that the removed Financial Transaction Ledger is no longer displayed.
+- Confirm chart labels, legend sizing, and brand-color behaviour.
+
+### Regression requirements
+- No broken routes.
+- No duplicate bookings caused by repeated submissions.
+- No duplicated revenue or payments.
+- No broken filters.
+- No inaccessible required forms.
+- No default HTML dropdown styling in the affected forms.
+- No unintended loss of existing data.
+- No new hardcoded demo values replacing actual application data.
+
+Implement the changes directly. At completion, provide a concise summary of completed work, the key tests performed, any outstanding defects, and any capabilities that still require backend support. Do not claim that a feature has been tested if it has not actually been tested.

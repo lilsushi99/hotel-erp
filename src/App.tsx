@@ -45,14 +45,16 @@ import { HotelSettingsPage } from './pages/administration/HotelSettingsPage';
 import { OptionalModulesPage } from './pages/administration/OptionalModulesPage';
 
 const ModuleRouteGuard: React.FC<{
-  moduleId: string;
+  moduleId?: string;
+  routePath: string;
   children: React.ReactNode;
-}> = ({ moduleId, children }) => {
-  const { optionalModules, toggleOptionalModule } = useHotel();
+}> = ({ moduleId, routePath, children }) => {
+  const { optionalModules, toggleOptionalModule, canAccessRoute, currentUser } = useHotel();
   const navigate = useNavigate();
-  const mod = optionalModules.find((m) => m.id === moduleId);
+  const mod = moduleId ? optionalModules.find((m) => m.id === moduleId) : undefined;
 
   if (mod && mod.status === 'Disabled') {
+    const canManageModules = currentUser.role === 'Administrator';
     return (
       <div className="bg-[#F0F0F0] p-1 rounded-[20px] max-w-xl mx-auto mt-12">
         <div className="bg-white rounded-[17px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 text-center space-y-4">
@@ -70,16 +72,27 @@ const ModuleRouteGuard: React.FC<{
             </p>
           </div>
           <div className="flex items-center justify-center gap-2.5 pt-2">
-            <SecondaryButton onClick={() => navigate('/admin/optional-modules')}>
-              Go to Operational Modules
+            <SecondaryButton onClick={() => navigate('/overview')}>
+              Back to Overview
             </SecondaryButton>
-            <PrimaryButton onClick={() => toggleOptionalModule(mod.id)}>
-              Enable {mod.name}
-            </PrimaryButton>
+            {canManageModules && (
+              <>
+                <SecondaryButton onClick={() => navigate('/admin/optional-modules')}>
+                  Go to Operational Modules
+                </SecondaryButton>
+                <PrimaryButton onClick={() => toggleOptionalModule(mod.id)}>
+                  Enable {mod.name}
+                </PrimaryButton>
+              </>
+            )}
           </div>
         </div>
       </div>
     );
+  }
+
+  if (!canAccessRoute(routePath)) {
+    return <Navigate to="/overview" replace />;
   }
 
   return <>{children}</>;
@@ -98,7 +111,7 @@ export function App() {
             <Route
               path="/bookings"
               element={
-                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS">
+                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS" routePath="/bookings">
                   <BookingsPage />
                 </ModuleRouteGuard>
               }
@@ -106,7 +119,7 @@ export function App() {
             <Route
               path="/rooms"
               element={
-                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS">
+                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS" routePath="/rooms">
                   <RoomsPage />
                 </ModuleRouteGuard>
               }
@@ -114,7 +127,7 @@ export function App() {
             <Route
               path="/guests"
               element={
-                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS">
+                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS" routePath="/guests">
                   <GuestCrmPage />
                 </ModuleRouteGuard>
               }
@@ -122,7 +135,7 @@ export function App() {
             <Route
               path="/guests/crm"
               element={
-                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS">
+                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS" routePath="/guests">
                   <GuestCrmPage />
                 </ModuleRouteGuard>
               }
@@ -130,7 +143,7 @@ export function App() {
             <Route
               path="/hotel-operations/reports"
               element={
-                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS">
+                <ModuleRouteGuard moduleId="MOD-HOTEL-OPS" routePath="/hotel-operations/reports">
                   <HotelOperationsReportsPage />
                 </ModuleRouteGuard>
               }
@@ -140,7 +153,7 @@ export function App() {
             <Route
               path="/sales/bar-pos"
               element={
-                <ModuleRouteGuard moduleId="MOD-BAR-POS">
+                <ModuleRouteGuard moduleId="MOD-BAR-POS" routePath="/sales/bar-pos">
                   <BarPosPage />
                 </ModuleRouteGuard>
               }
@@ -148,7 +161,7 @@ export function App() {
             <Route
               path="/sales/kitchen-restaurant"
               element={
-                <ModuleRouteGuard moduleId="MOD-KITCHEN-RES">
+                <ModuleRouteGuard moduleId="MOD-KITCHEN-RES" routePath="/sales/kitchen-restaurant">
                   <KitchenRestaurantPage />
                 </ModuleRouteGuard>
               }
@@ -156,7 +169,7 @@ export function App() {
             <Route
               path="/sales/reports"
               element={
-                <ModuleRouteGuard moduleId="MOD-BAR-POS">
+                <ModuleRouteGuard routePath="/sales/reports">
                   <SalesReportsPage />
                 </ModuleRouteGuard>
               }
@@ -166,7 +179,7 @@ export function App() {
             <Route
               path="/laundry/logger"
               element={
-                <ModuleRouteGuard moduleId="MOD-LAUNDRY">
+                <ModuleRouteGuard moduleId="MOD-LAUNDRY" routePath="/laundry/logger">
                   <LaundryLoggerPage />
                 </ModuleRouteGuard>
               }
@@ -174,7 +187,7 @@ export function App() {
             <Route
               path="/laundry/storage"
               element={
-                <ModuleRouteGuard moduleId="MOD-LAUNDRY">
+                <ModuleRouteGuard moduleId="MOD-LAUNDRY" routePath="/laundry/storage">
                   <LaundryStoragePage />
                 </ModuleRouteGuard>
               }
@@ -182,7 +195,7 @@ export function App() {
             <Route
               path="/laundry/crm"
               element={
-                <ModuleRouteGuard moduleId="MOD-LAUNDRY">
+                <ModuleRouteGuard moduleId="MOD-LAUNDRY" routePath="/laundry/crm">
                   <LaundryCrmPage />
                 </ModuleRouteGuard>
               }
@@ -192,7 +205,7 @@ export function App() {
             <Route
               path="/inventory/beverages"
               element={
-                <ModuleRouteGuard moduleId="MOD-BAR-POS">
+                <ModuleRouteGuard moduleId="MOD-BAR-POS" routePath="/inventory/beverages">
                   <BeveragesPage />
                 </ModuleRouteGuard>
               }
@@ -200,30 +213,70 @@ export function App() {
             <Route
               path="/inventory/food"
               element={
-                <ModuleRouteGuard moduleId="MOD-KITCHEN-RES">
+                <ModuleRouteGuard moduleId="MOD-KITCHEN-RES" routePath="/inventory/food">
                   <FoodInventoryPage />
                 </ModuleRouteGuard>
               }
             />
-            <Route path="/inventory/supplies" element={<SuppliesPage />} />
+            <Route
+              path="/inventory/supplies"
+              element={
+                <ModuleRouteGuard routePath="/inventory/supplies">
+                  <SuppliesPage />
+                </ModuleRouteGuard>
+              }
+            />
             <Route
               path="/inventory/stock-movements"
-              element={<SuppliesPage />}
+              element={
+                <ModuleRouteGuard routePath="/inventory/supplies">
+                  <SuppliesPage />
+                </ModuleRouteGuard>
+              }
             />
 
             {/* Finance & Intelligence */}
-            <Route path="/finance/expenses" element={<ExpensesPage />} />
+            <Route
+              path="/finance/expenses"
+              element={
+                <ModuleRouteGuard routePath="/finance/expenses">
+                  <ExpensesPage />
+                </ModuleRouteGuard>
+              }
+            />
             <Route
               path="/finance/reports"
-              element={<FinancialReportsPage />}
+              element={
+                <ModuleRouteGuard routePath="/finance/reports">
+                  <FinancialReportsPage />
+                </ModuleRouteGuard>
+              }
             />
 
             {/* Administration */}
-            <Route path="/admin/staff" element={<StaffPermissionsPage />} />
-            <Route path="/admin/settings" element={<HotelSettingsPage />} />
+            <Route
+              path="/admin/staff"
+              element={
+                <ModuleRouteGuard routePath="/admin/staff">
+                  <StaffPermissionsPage />
+                </ModuleRouteGuard>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <ModuleRouteGuard routePath="/admin/settings">
+                  <HotelSettingsPage />
+                </ModuleRouteGuard>
+              }
+            />
             <Route
               path="/admin/optional-modules"
-              element={<OptionalModulesPage />}
+              element={
+                <ModuleRouteGuard routePath="/admin/optional-modules">
+                  <OptionalModulesPage />
+                </ModuleRouteGuard>
+              }
             />
 
             <Route path="*" element={<Navigate to="/overview" replace />} />

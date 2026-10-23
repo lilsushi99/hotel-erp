@@ -21,11 +21,13 @@ import { EmptyState } from '../../components/ui/PageControls';
 const ROLES: StaffRole[] = [
   'Administrator',
   'Manager',
+  'Supervisor',
   'Front Desk',
   'Accountant',
   'Inventory Officer',
   'Housekeeping',
   'Restaurant Staff',
+  'Bar Staff',
   'Laundry Staff',
 ];
 

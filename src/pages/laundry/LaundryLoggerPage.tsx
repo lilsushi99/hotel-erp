@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CreditCard,
   Eye,
+  Edit3,
   Trash2,
   ArrowRight,
   Search,
@@ -24,7 +25,7 @@ import {
   Pagination,
   CustomSingleDatePicker,
 } from '../../components/ui/PageControls';
-import { Modal, Drawer } from '../../components/ui/Overlay';
+import { Modal, Drawer, ConfirmDialog } from '../../components/ui/Overlay';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import {
   LaundryOrder,
@@ -100,6 +101,8 @@ export const LaundryLoggerPage: React.FC = () => {
   const pageSize = 8;
 
   const [showNewModal, setShowNewModal] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [deleteTargetOrder, setDeleteTargetOrder] = useState<LaundryOrder | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<LaundryOrder | null>(null);
 
   // Form state for Log Laundry Order
@@ -290,6 +293,7 @@ export const LaundryLoggerPage: React.FC = () => {
   const formTotalGarments = calculatedLines.reduce((s, l) => s + l.quantity, 0);
 
   const handleOpenNewModal = () => {
+    setEditingOrderId(null);
     setCustomerMode('existing');
     setSelectedGuestId('');
     setGuestSearchQuery('');
@@ -307,6 +311,41 @@ export const LaundryLoggerPage: React.FC = () => {
         totalLinePrice: 5000,
       },
     ]);
+    setShowNewModal(true);
+  };
+
+  const handleOpenEditModal = (order: LaundryOrder) => {
+    setEditingOrderId(order.id);
+    setCustomerMode(order.guestId ? 'existing' : 'walkin');
+    setSelectedGuestId(order.guestId || '');
+    setGuestSearchQuery('');
+    setCustomerName(order.customerName);
+    setCustomerPhone(order.customerPhone);
+    setRoomOrAddress(
+      order.roomNumber ? `Room ${order.roomNumber}` : order.customerAddress || ''
+    );
+    setPromisedDate(order.promisedDate);
+    setPaymentMethod(
+      PAYMENT_METHODS.includes(order.paymentMethod) ? order.paymentMethod : 'Card'
+    );
+    setPaymentStatus(order.paymentStatus === 'Paid' ? 'Paid' : 'Unpaid');
+    setLines(
+      order.garments.length > 0
+        ? order.garments.map((g) => ({
+            garmentType: g.garmentType,
+            serviceType: g.serviceType,
+            quantity: g.quantity,
+            totalLinePrice: g.subtotal,
+          }))
+        : [
+            {
+              garmentType: "Men's Formal Shirt",
+              serviceType: 'Washing & Ironing',
+              quantity: 1,
+              totalLinePrice: order.totalAmount || 2500,
+            },
+          ]
+    );
     setShowNewModal(true);
   };
 
@@ -377,6 +416,28 @@ export const LaundryLoggerPage: React.FC = () => {
         ? roomOrAddress.replace(/^Room\s+/i, '').trim() || undefined
         : undefined;
 
+    if (editingOrderId) {
+      updateLaundryOrder(editingOrderId, {
+        guestId: resolvedGuestId,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim() || '+234 800 000 0000',
+        customerAddress:
+          roomOrAddress.trim() ||
+          (roomVal ? `Room ${roomVal}` : 'Walk-in Pickup'),
+        roomNumber: roomVal,
+        garments: validLines,
+        subtotal: formTotalAmount,
+        totalAmount: formTotalAmount,
+        amountPaid: paidVal,
+        paymentMethod,
+        paymentStatus: resolvedPayStatus,
+        promisedDate,
+      });
+      setEditingOrderId(null);
+      setShowNewModal(false);
+      return;
+    }
+
     createLaundryOrder({
       guestId: resolvedGuestId,
       customerName: customerName.trim(),
@@ -401,12 +462,39 @@ export const LaundryLoggerPage: React.FC = () => {
     setShowNewModal(false);
   };
 
-  const getNextStatus = (
-    current: LaundryWorkflowStatus
-  ): LaundryWorkflowStatus | null => {
-    const idx = WORKFLOW_SEQUENCE.indexOf(current);
-    if (idx === -1 || idx >= WORKFLOW_SEQUENCE.length - 1) return null;
-    return WORKFLOW_SEQUENCE[idx + 1];
+  const getOrderStageSequence = (order: LaundryOrder): LaundryWorkflowStatus[] => {
+    const primaryService = order.garments[0]?.serviceType || 'Washing & Ironing';
+    if (primaryService === 'Washing' || primaryService === 'Wash Only') {
+      return ['Received', 'Washing', 'Drying', 'Ready for Collection', 'Collected'];
+    }
+    if (
+      primaryService === 'Ironing' ||
+      primaryService === 'Iron Only' ||
+      primaryService === 'Express Press'
+    ) {
+      return ['Received', 'Ironing', 'Ready for Collection', 'Collected'];
+    }
+    if (primaryService === 'Washing & Ironing' || primaryService === 'Wash & Iron') {
+      return ['Received', 'Washing', 'Ironing', 'Ready for Collection', 'Collected'];
+    }
+    return WORKFLOW_SEQUENCE;
+  };
+
+  const getNextStatus = (order: LaundryOrder): LaundryWorkflowStatus | null => {
+    const seq = getOrderStageSequence(order);
+    const idx = seq.indexOf(order.workflowStatus);
+    if (idx !== -1 && idx < seq.length - 1) {
+      return seq[idx + 1];
+    }
+    // Fallback if current status is not in the service-specific sequence (e.g. Drying)
+    const fullIdx = WORKFLOW_SEQUENCE.indexOf(order.workflowStatus);
+    if (fullIdx === -1 || fullIdx >= WORKFLOW_SEQUENCE.length - 1) return null;
+    for (let i = fullIdx + 1; i < WORKFLOW_SEQUENCE.length; i++) {
+      if (seq.includes(WORKFLOW_SEQUENCE[i])) {
+        return WORKFLOW_SEQUENCE[i];
+      }
+    }
+    return null;
   };
 
   return (
@@ -530,14 +618,15 @@ export const LaundryLoggerPage: React.FC = () => {
                     <th className="py-3.5 px-4 text-right whitespace-nowrap">Amount</th>
                     <th className="py-3.5 px-4 whitespace-nowrap">Payment Status</th>
                     <th className="py-3.5 px-4 whitespace-nowrap">Progress</th>
-                    <th className="py-3.5 px-5 text-right whitespace-nowrap">Actions</th>
+                    <th className="py-3.5 px-4 text-right whitespace-nowrap">Actions</th>
+                    <th className="py-3.5 px-5 text-right whitespace-nowrap">Edit</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F2F2EE] text-[13.5px]">
                   {paginatedOrders.map((order) => {
                     const primaryService =
                       order.garments[0]?.serviceType || 'Washing & Ironing';
-                    const nextStage = getNextStatus(order.workflowStatus);
+                    const nextStage = getNextStatus(order);
                     const displayPayStatus =
                       order.paymentStatus === 'Paid' ? 'Paid' : 'Unpaid';
                     const addressLabel = order.roomNumber
@@ -584,40 +673,49 @@ export const LaundryLoggerPage: React.FC = () => {
                           <StatusBadge status={order.workflowStatus} />
                         </td>
                         <td
+                          className="py-3.5 px-4 text-right whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {nextStage ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateLaundryStatus(order.id, nextStage)
+                              }
+                              title={`Advance stage to ${nextStage}`}
+                              className="px-2.5 py-1 rounded-[8px] text-[11.5px] font-medium bg-[#F1EEF8] text-[#7463A6] hover:bg-[#7463A6] hover:text-white transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              {nextStage === 'Ready for Collection'
+                                ? 'Ready'
+                                : nextStage === 'Collected'
+                                ? 'Collected'
+                                : nextStage}
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          ) : (
+                            <span className="text-[11.5px] text-[#8E8E88]">
+                              Done
+                            </span>
+                          )}
+                        </td>
+                        <td
                           className="py-3.5 px-5 text-right whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="inline-flex items-center gap-1">
-                            {nextStage && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateLaundryStatus(order.id, nextStage)
-                                }
-                                title={`Advance to ${nextStage}`}
-                                className="px-2.5 py-1 rounded-[8px] text-[11.5px] font-medium bg-[#F1EEF8] text-[#7463A6] hover:bg-[#7463A6] hover:text-white transition-colors inline-flex items-center gap-1 cursor-pointer"
-                              >
-                                {nextStage === 'Ready for Collection'
-                                  ? 'Mark Ready'
-                                  : nextStage === 'Collected'
-                                  ? 'Mark Collected'
-                                  : nextStage}
-                                <ArrowRight className="w-3 h-3" />
-                              </button>
-                            )}
                             <button
                               type="button"
-                              onClick={() => setSelectedOrder(order)}
-                              title="View Order Details"
-                              className="p-1.5 rounded-lg text-[#6E6E6A] hover:text-[#1E1E1E] hover:bg-[#EFEFEA]"
+                              onClick={() => handleOpenEditModal(order)}
+                              title="Edit Order"
+                              className="p-1.5 rounded-lg text-[#6E6E6A] hover:text-[#1E1E1E] hover:bg-[#EFEFEA] cursor-pointer"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Edit3 className="w-4 h-4" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => deleteLaundryOrder(order.id)}
+                              onClick={() => setDeleteTargetOrder(order)}
                               title="Delete Order"
-                              className="p-1.5 rounded-lg text-[#6E6E6A] hover:text-[#B93829] hover:bg-[#FCECE9]"
+                              className="p-1.5 rounded-lg text-[#6E6E6A] hover:text-[#B93829] hover:bg-[#FCECE9] cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -640,11 +738,14 @@ export const LaundryLoggerPage: React.FC = () => {
         )}
       </div>
 
-      {/* Log Laundry Order Modal */}
+      {/* Log / Edit Laundry Order Modal */}
       <Modal
         isOpen={showNewModal}
-        onClose={() => setShowNewModal(false)}
-        title="Log Laundry Order"
+        onClose={() => {
+          setShowNewModal(false);
+          setEditingOrderId(null);
+        }}
+        title={editingOrderId ? `Edit Laundry Order ${editingOrderId}` : 'Log Laundry Order'}
         size="lg"
       >
         <form onSubmit={handleCreateOrder} className="space-y-5">
@@ -926,19 +1027,42 @@ export const LaundryLoggerPage: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <button
                 type="button"
-                onClick={() => setShowNewModal(false)}
+                onClick={() => {
+                  setShowNewModal(false);
+                  setEditingOrderId(null);
+                }}
                 className="px-4 py-2 rounded-[10px] text-[13px] font-normal text-[#4A4A46] bg-[#F6F6F4] hover:bg-[#EAEAE4] cursor-pointer"
               >
                 Cancel
               </button>
               <PrimaryButton type="submit">
-                Create Order (
-                {formatCurrency(formTotalAmount, settings.currencySymbol)})
+                {editingOrderId
+                  ? `Save Changes (${formatCurrency(formTotalAmount, settings.currencySymbol)})`
+                  : `Create Order (${formatCurrency(formTotalAmount, settings.currencySymbol)})`}
               </PrimaryButton>
             </div>
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteTargetOrder}
+        onClose={() => setDeleteTargetOrder(null)}
+        onConfirm={() => {
+          if (deleteTargetOrder) {
+            deleteLaundryOrder(deleteTargetOrder.id);
+            setDeleteTargetOrder(null);
+          }
+        }}
+        title="Delete Laundry Order"
+        description={
+          deleteTargetOrder
+            ? `Are you sure you want to delete laundry order ${deleteTargetOrder.id} for ${deleteTargetOrder.customerName}?`
+            : ''
+        }
+        confirmLabel="Delete Order"
+      />
 
       {/* Laundry Order Detail Drawer */}
       <Drawer

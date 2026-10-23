@@ -284,10 +284,12 @@ export interface Expense {
 export type StaffRole =
   | 'Administrator'
   | 'Manager'
+  | 'Supervisor'
   | 'Front Desk'
   | 'Accountant'
   | 'Inventory Officer'
   | 'Housekeeping'
+  | 'Bar Staff'
   | 'Restaurant Staff'
   | 'Laundry Staff';
 
@@ -358,6 +360,7 @@ export interface HotelSettings {
   expenseCategoryConfigs?: ExpenseCategoryConfig[];
   supplyCategories?: string[];
   sidebarStyle?: 'standard' | 'ribcage';
+  sidebarNavigationMode?: 'full' | 'collapsed';
 }
 
 export interface OptionalModule {

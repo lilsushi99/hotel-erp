@@ -51,6 +51,7 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 ];
 
 const EXPENSE_DEPARTMENTS: string[] = [
+  'All Departments',
   'Rooms',
   'Bar',
   'Restaurant',
@@ -170,29 +171,36 @@ export const ExpensesPage: React.FC = () => {
   );
 
   // KPIs
+  const allBranchValidExpenses = useMemo(
+    () =>
+      expenses.filter(
+        (e) =>
+          e.status !== 'Rejected' &&
+          (selectedBranchId === 'ALL' || e.branchId === selectedBranchId)
+      ),
+    [expenses, selectedBranchId]
+  );
+
+  const todaysSpend = useMemo(
+    () =>
+      allBranchValidExpenses
+        .filter((e) => e.date === TODAY_STR)
+        .reduce((s, e) => s + e.amount, 0),
+    [allBranchValidExpenses]
+  );
+
   const totalSpend = branchExpenses
     .filter((e) => e.status !== 'Rejected')
     .reduce((s, e) => s + e.amount, 0);
 
-  const approvedSpend = branchExpenses
-    .filter((e) => e.status === 'Approved')
-    .reduce((s, e) => s + e.amount, 0);
-
-  const pendingApprovalAmount = branchExpenses
-    .filter((e) => e.status === 'Pending')
-    .reduce((s, e) => s + e.amount, 0);
-
-  // Top category
-  const topCategoryEntry = useMemo(() => {
-    const map: Record<string, number> = {};
-    branchExpenses
-      .filter((e) => e.status !== 'Rejected')
-      .forEach((e) => {
-        map[e.category] = (map[e.category] || 0) + e.amount;
-      });
-    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
-    return sorted[0] || ['None', 0];
-  }, [branchExpenses]);
+  const monthlyAvgSpend = useMemo(() => {
+    if (allBranchValidExpenses.length === 0) return 0;
+    const months = new Set(
+      allBranchValidExpenses.map((e) => e.date.slice(0, 7))
+    );
+    const totalAll = allBranchValidExpenses.reduce((s, e) => s + e.amount, 0);
+    return Math.round(totalAll / Math.max(1, months.size));
+  }, [allBranchValidExpenses]);
 
   const filteredExpenses = useMemo(() => {
     const list = branchExpenses.filter((e) => {
@@ -346,7 +354,6 @@ export const ExpensesPage: React.FC = () => {
         Description: e.description,
         RecordedBy: e.responsibleStaff,
         Amount: e.amount,
-        PaymentMethod: e.paymentMethod,
         Department: getExpenseDepartment(e),
       }))
     );
@@ -371,32 +378,23 @@ export const ExpensesPage: React.FC = () => {
         }
       />
 
-      {/* 4 KPI Cards — Overview height standard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 3 KPI Cards — Overview height standard */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KpiCard
-          label="Total Expenses"
+          label="Today's Expense"
+          value={formatCurrency(todaysSpend, settings.currencySymbol)}
+          icon={Clock}
+          tone="amber"
+        />
+        <KpiCard
+          label="Total Expense"
           value={formatCurrency(totalSpend, settings.currencySymbol)}
           icon={Receipt}
           tone="red"
         />
         <KpiCard
-          label="Approved Expenses"
-          value={formatCurrency(approvedSpend, settings.currencySymbol)}
-          icon={CheckCircle2}
-          tone="emerald"
-        />
-        <KpiCard
-          label="Pending Approval"
-          value={formatCurrency(pendingApprovalAmount, settings.currencySymbol)}
-          icon={Clock}
-          tone="amber"
-        />
-        <KpiCard
-          label="Largest Cost Driver"
-          value={formatCurrency(
-            Number(topCategoryEntry[1]),
-            settings.currencySymbol
-          )}
+          label="Monthly Average Expense"
+          value={formatCurrency(monthlyAvgSpend, settings.currencySymbol)}
           icon={TrendingDown}
           tone="purple"
         />
@@ -471,9 +469,6 @@ export const ExpensesPage: React.FC = () => {
                       Amount
                     </th>
                     <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
-                      Payment Method
-                    </th>
-                    <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] whitespace-nowrap">
                       Department
                     </th>
                     <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider text-[#6B7280] text-right whitespace-nowrap">
@@ -506,9 +501,6 @@ export const ExpensesPage: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-right font-normal text-[#111111] tabular-nums whitespace-nowrap">
                           {formatCurrency(exp.amount, settings.currencySymbol)}
-                        </td>
-                        <td className="py-3.5 px-4 font-normal text-[#4B5563] whitespace-nowrap">
-                          {exp.paymentMethod}
                         </td>
                         <td className="py-3.5 px-4 font-normal text-[#374151] whitespace-nowrap">
                           {dept}
@@ -613,29 +605,16 @@ export const ExpensesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Dropdown
-                label="Payment Method"
-                value={paymentMethod}
-                onChange={(val) => setPaymentMethod(val as PaymentMethod)}
-                options={PAYMENT_METHODS.map((pm) => ({
-                  value: pm,
-                  label: pm,
-                }))}
-              />
-            </div>
-            <div>
-              <label className="block text-[12px] font-medium text-[#374151] mb-1.5">
-                Recorded By
-              </label>
-              <input
-                type="text"
-                readOnly
-                value={editingExpense ? responsibleStaff : currentUser.name}
-                className="w-full px-3.5 py-2 bg-[#F7F7F5] border border-[#E5E7EB] rounded-[11px] text-[13px] text-[#4B5563] cursor-not-allowed"
-              />
-            </div>
+          <div>
+            <label className="block text-[12px] font-medium text-[#374151] mb-1.5">
+              Recorded By
+            </label>
+            <input
+              type="text"
+              readOnly
+              value={editingExpense ? responsibleStaff : currentUser.name}
+              className="w-full px-3.5 py-2 bg-[#F7F7F5] border border-[#E5E7EB] rounded-[11px] text-[13px] text-[#4B5563] cursor-not-allowed"
+            />
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#EFEFEF]">

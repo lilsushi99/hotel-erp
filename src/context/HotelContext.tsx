@@ -181,6 +181,13 @@ interface HotelContextValue {
   updateSettings: (newSettings: Partial<HotelSettings>) => void;
   resetSettings: () => void;
   toggleOptionalModule: (id: string) => void;
+
+  // Access & Permissions Helpers
+  hasPermission: (action: PermissionAction) => boolean;
+  isModuleEnabled: (moduleId: string) => boolean;
+  canAccessRoute: (path: string) => boolean;
+  canEditRoomPricing: boolean;
+  canManageInventory: boolean;
 }
 
 const HotelContext = createContext<HotelContextValue | undefined>(undefined);
@@ -225,11 +232,19 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadState('laundryOrders', INITIAL_LAUNDRY_ORDERS)
   );
   const [expenses, setExpenses] = useState<Expense[]>(() => loadState('expenses', INITIAL_EXPENSES));
-  const [staff, setStaff] = useState<StaffMember[]>(() => loadState('staff', INITIAL_STAFF));
+  const [staff, setStaff] = useState<StaffMember[]>(() => {
+    const saved = loadState('staff', INITIAL_STAFF);
+    const existingIds = new Set(saved.map((s) => s.id));
+    const missing = INITIAL_STAFF.filter((s) => !existingIds.has(s.id));
+    return [...saved, ...missing];
+  });
   const [currentUserId, setCurrentUserId] = useState<string>(() => loadState('currentUserId', INITIAL_STAFF[0].id));
-  const [rolePermissions, setRolePermissions] = useState<RolePermissionConfig[]>(() =>
-    loadState('rolePermissions', INITIAL_ROLE_PERMISSIONS)
-  );
+  const [rolePermissions, setRolePermissions] = useState<RolePermissionConfig[]>(() => {
+    const saved = loadState('rolePermissions', INITIAL_ROLE_PERMISSIONS);
+    const existingRoles = new Set(saved.map((r) => r.role));
+    const missing = INITIAL_ROLE_PERMISSIONS.filter((r) => !existingRoles.has(r.role));
+    return [...saved, ...missing];
+  });
   const [staffActivity, setStaffActivity] = useState<StaffActivityLog[]>(() =>
     loadState('staffActivity', INITIAL_STAFF_ACTIVITY)
   );
@@ -586,13 +601,25 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateRoomStatus = useCallback(
     (id: string, status: RoomOperationalStatus) => {
       const rm = rooms.find((r) => r.id === id);
-      setRooms((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-      if (rm) {
-        logActivity(`Changed Room ${rm.roomNumber} operational status to ${status}`, 'Rooms');
-        notify('Room Status Updated', `Room ${rm.roomNumber} is now marked as ${status}.`);
+      if (!rm) return;
+
+      const activeCheckedInBooking = bookings.find(
+        (b) => b.roomId === id && b.bookingStatus === 'Checked In'
+      );
+      if (activeCheckedInBooking && status !== 'Occupied') {
+        notify(
+          'Room Currently Occupied',
+          `Room ${rm.roomNumber} has an active checked-in guest (${activeCheckedInBooking.guestName}). Check out the guest first before changing room status.`,
+          'error'
+        );
+        return;
       }
+
+      setRooms((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+      logActivity(`Changed Room ${rm.roomNumber} operational status to ${status}`, 'Rooms');
+      notify('Room Status Updated', `Room ${rm.roomNumber} is now marked as ${status}.`);
     },
-    [rooms, logActivity, notify]
+    [rooms, bookings, logActivity, notify]
   );
 
   const deleteRoom = useCallback(
@@ -1326,6 +1353,138 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [notify]
   );
 
+  const currentRoleConfig = rolePermissions.find((rp) => rp.role === currentUser.role);
+
+  const hasPermission = useCallback(
+    (action: PermissionAction): boolean => {
+      if (currentUser.role === 'Administrator') return true;
+      if (!currentRoleConfig) return false;
+      return Boolean(currentRoleConfig.permissions[action]);
+    },
+    [currentUser.role, currentRoleConfig]
+  );
+
+  const isModuleEnabled = useCallback(
+    (moduleId: string): boolean => {
+      const mod = optionalModules.find((m) => m.id === moduleId);
+      return mod ? mod.status === 'Enabled' : true;
+    },
+    [optionalModules]
+  );
+
+  const canEditRoomPricing =
+    (currentUser.role === 'Administrator' ||
+      currentUser.role === 'Manager' ||
+      currentUser.role === 'Supervisor') &&
+    hasPermission('Edit');
+
+  const canManageInventory =
+    (currentUser.role === 'Administrator' ||
+      currentUser.role === 'Manager' ||
+      currentUser.role === 'Supervisor' ||
+      currentUser.role === 'Inventory Officer') &&
+    (hasPermission('Create') || hasPermission('Edit'));
+
+  const canAccessRoute = useCallback(
+    (path: string): boolean => {
+      const cleanPath = path.split('?')[0];
+      if (cleanPath === '/' || cleanPath === '/overview') return true;
+
+      const modulesAccess = currentRoleConfig?.modulesAccess || [];
+      const isAdmin = currentUser.role === 'Administrator';
+
+      // Hotel Operations
+      if (
+        cleanPath === '/bookings' ||
+        cleanPath === '/rooms' ||
+        cleanPath.startsWith('/guests') ||
+        cleanPath.startsWith('/hotel-operations') ||
+        cleanPath.startsWith('/guest-management')
+      ) {
+        if (!isModuleEnabled('MOD-HOTEL-OPS')) return false;
+        if (isAdmin) return true;
+        return (
+          modulesAccess.includes('Hotel Operations') ||
+          modulesAccess.includes('Customer Management')
+        );
+      }
+
+      // Sales & Services
+      if (
+        cleanPath.startsWith('/sales') ||
+        cleanPath.startsWith('/sales-services')
+      ) {
+        const barOn = isModuleEnabled('MOD-BAR-POS');
+        const kitchenOn = isModuleEnabled('MOD-KITCHEN-RES');
+        if (
+          cleanPath === '/sales/bar-pos' ||
+          cleanPath === '/sales-services/bar-pos'
+        ) {
+          if (!barOn) return false;
+          if (currentUser.role === 'Restaurant Staff') return false;
+        }
+        if (
+          cleanPath === '/sales/kitchen-restaurant' ||
+          cleanPath === '/sales-services/kitchen-restaurant'
+        ) {
+          if (!kitchenOn) return false;
+          if (currentUser.role === 'Bar Staff') return false;
+        }
+        if (
+          cleanPath === '/sales/reports' ||
+          cleanPath === '/sales-services/reports'
+        ) {
+          if (!barOn && !kitchenOn) return false;
+        }
+        if (isAdmin) return true;
+        return modulesAccess.includes('Sales & Services');
+      }
+
+      // Laundry
+      if (cleanPath.startsWith('/laundry')) {
+        if (!isModuleEnabled('MOD-LAUNDRY')) return false;
+        if (isAdmin) return true;
+        return modulesAccess.includes('Laundry');
+      }
+
+      // Inventory
+      if (cleanPath.startsWith('/inventory')) {
+        if (cleanPath === '/inventory/beverages' && !isModuleEnabled('MOD-BAR-POS')) {
+          return false;
+        }
+        if (cleanPath === '/inventory/food' && !isModuleEnabled('MOD-KITCHEN-RES')) {
+          return false;
+        }
+        if (isAdmin) return true;
+        if (currentUser.role === 'Bar Staff' || currentUser.role === 'Restaurant Staff') {
+          return false;
+        }
+        return modulesAccess.includes('Inventory');
+      }
+
+      // Finance & Intelligence
+      if (cleanPath.startsWith('/finance')) {
+        if (isAdmin) return true;
+        return modulesAccess.includes('Finance & Intelligence');
+      }
+
+      // Administration
+      if (
+        cleanPath.startsWith('/admin') ||
+        cleanPath.startsWith('/administration')
+      ) {
+        if (isAdmin) return true;
+        return (
+          modulesAccess.includes('Administration') ||
+          Boolean(currentRoleConfig?.permissions['Manage Settings'])
+        );
+      }
+
+      return true;
+    },
+    [currentUser.role, currentRoleConfig, isModuleEnabled]
+  );
+
   return (
     <HotelContext.Provider
       value={{
@@ -1401,6 +1560,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateSettings,
         resetSettings,
         toggleOptionalModule,
+        hasPermission,
+        isModuleEnabled,
+        canAccessRoute,
+        canEditRoomPricing,
+        canManageInventory,
       }}
     >
       {children}

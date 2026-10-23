@@ -460,20 +460,20 @@ export const KitchenRestaurantPage: React.FC = () => {
                         <div className="w-9 h-9 rounded-[10px] bg-[#F1EEF8] flex items-center justify-center text-[#7463A6] shrink-0">
                           <UtensilsCrossed className="w-4.5 h-4.5" />
                         </div>
-                        <span className="px-2.5 py-1 rounded-[8px] bg-[#F2F2EE] text-[#4A4A46] text-[11.5px] font-medium tabular-nums">
+                        <span className="px-2.5 py-1 rounded-[8px] bg-[#F2F2EE] text-[#4A4A46] text-[11.5px] font-normal tabular-nums">
                           {outOfStock
                             ? 'Out of Stock'
                             : `${food.availableQuantity} ${food.unit}s`}
                         </span>
                       </div>
 
-                      <h3 className="text-[14px] font-medium text-[#1E1E1E] mt-3 leading-snug">
+                      <h3 className="text-[14px] font-bold text-[#1E1E1E] mt-3 leading-snug">
                         {food.name}
                       </h3>
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-[#F2F2EE] flex items-center justify-between">
-                      <div className="text-[14.5px] font-medium text-[#1E1E1E] tabular-nums">
+                      <div className="text-[14.5px] font-normal text-[#1E1E1E] tabular-nums">
                         {formatCurrency(sellPrice, sym)}
                       </div>
 
@@ -502,7 +502,7 @@ export const KitchenRestaurantPage: React.FC = () => {
                           type="button"
                           disabled={outOfStock}
                           onClick={() => addFoodToCart(food.id)}
-                          className="px-3.5 py-1.5 rounded-[9px] bg-[#F6F6F4] hover:bg-[#7463A6] hover:text-white text-[#1E1E1E] text-[12px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-[9px] bg-[#F6F6F4] hover:bg-[#7463A6] hover:text-white text-[#1E1E1E] text-[12px] font-normal transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                         >
                           + Add
                         </button>

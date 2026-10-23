@@ -266,8 +266,11 @@ export const BookingsPage: React.FC = () => {
     };
   }, [rooms, bookings]);
 
+  const [bookingStep, setBookingStep] = useState<1 | 2>(1);
+
   const openCreateModal = (prefillRoomId?: string, prefillDate?: string) => {
     setEditingBookingId(null);
+    setBookingStep(1);
     setFormError('');
     setGuestIdInput('');
     setGuestSearchQuery('');
@@ -305,6 +308,7 @@ export const BookingsPage: React.FC = () => {
 
   const openEditModal = (bk: Booking) => {
     setEditingBookingId(bk.id);
+    setBookingStep(1);
     setFormError('');
     setGuestIdInput(bk.guestId);
     setGuestSearchQuery(bk.guestName);
@@ -477,8 +481,42 @@ export const BookingsPage: React.FC = () => {
     [roomId, getRoomAvailabilityForDates, checkInDate, checkOutDate, editingBookingId]
   );
 
+  const handleNextStep = () => {
+    setFormError('');
+    if (!guestName.trim()) {
+      setFormError('Please enter the guest full name.');
+      return;
+    }
+    const selectedRm = rooms.find((r) => r.id === roomId);
+    if (!selectedRm) {
+      setFormError('Please select a room.');
+      return;
+    }
+    if (checkOutDate <= checkInDate) {
+      setFormError('Check-out date must be after check-in date.');
+      return;
+    }
+    if (bookingStatus !== 'Cancelled' && bookingStatus !== 'Checked Out') {
+      const avail = getRoomAvailabilityForDates(
+        selectedRm.id,
+        checkInDate,
+        checkOutDate,
+        editingBookingId
+      );
+      if (!avail.available) {
+        setFormError(`Room ${selectedRm.roomNumber} cannot be booked: ${avail.reason}.`);
+        return;
+      }
+    }
+    setBookingStep(2);
+  };
+
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
+    if (bookingStep === 1) {
+      handleNextStep();
+      return;
+    }
     setFormError('');
 
     const selectedRm = rooms.find((r) => r.id === roomId);
@@ -607,7 +645,7 @@ export const BookingsPage: React.FC = () => {
         title="Bookings & Reservations"
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Compact View Dropdown: Table View vs Timeline View */}
+            {/* 1. View Dropdown: Table View vs Timeline View */}
             <Dropdown
               value={viewMode}
               onChange={(v) => setViewMode(v as 'table' | 'timeline')}
@@ -619,15 +657,7 @@ export const BookingsPage: React.FC = () => {
               ]}
             />
 
-            <button
-              type="button"
-              onClick={() => openCreateModal()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#7463A6] hover:bg-[#635394] text-white text-[13px] font-medium transition-colors cursor-pointer whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              New Booking
-            </button>
-
+            {/* 2. Date Dropdown */}
             <DateRangeControl
               fromDate={dateFromFilter}
               toDate={dateToFilter}
@@ -637,6 +667,16 @@ export const BookingsPage: React.FC = () => {
                 setPage(1);
               }}
             />
+
+            {/* 3. New Booking Button */}
+            <button
+              type="button"
+              onClick={() => openCreateModal()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#7463A6] hover:bg-[#635394] text-white text-[13px] font-medium transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              New Booking
+            </button>
           </div>
         }
       />
@@ -1340,7 +1380,7 @@ export const BookingsPage: React.FC = () => {
         )}
       </Drawer>
 
-      {/* CREATE / EDIT BOOKING MODAL — Streamlined 17-Item Reservation Flow */}
+      {/* CREATE / EDIT BOOKING MODAL — 2-Step Progress Reservation Flow */}
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
@@ -1348,392 +1388,531 @@ export const BookingsPage: React.FC = () => {
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmitForm} className="space-y-4">
+          {/* Top 2-Step Progress Indicator */}
+          <div className="pb-3.5 border-b border-[#EFEFEA]">
+            <div className="flex items-center justify-between gap-3">
+              {/* Step 1 Node */}
+              <button
+                type="button"
+                onClick={() => setBookingStep(1)}
+                className="flex items-center gap-2.5 text-left cursor-pointer group"
+              >
+                <span
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold transition-colors shrink-0 ${
+                    bookingStep >= 1
+                      ? 'bg-[#7463A6] text-white'
+                      : 'bg-[#F0F0EC] text-[#6E6E6A]'
+                  }`}
+                >
+                  1
+                </span>
+                <div>
+                  <div
+                    className={`text-[12.5px] font-medium leading-tight ${
+                      bookingStep === 1 ? 'text-[#1E1E1E]' : 'text-[#6E6E6A]'
+                    }`}
+                  >
+                    Guest & Stay Details
+                  </div>
+                  <div className="text-[11px] text-[#8E8E88]">
+                    Guest profile, room & dates
+                  </div>
+                </div>
+              </button>
+
+              {/* Connecting Progress Line */}
+              <div className="flex-1 h-1.5 rounded-full bg-[#EFEFEA] overflow-hidden mx-2">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    bookingStep === 2 ? 'w-full bg-[#7463A6]' : 'w-1/2 bg-[#7463A6]/45'
+                  }`}
+                />
+              </div>
+
+              {/* Step 2 Node */}
+              <button
+                type="button"
+                onClick={handleNextStep}
+                className="flex items-center gap-2.5 text-left cursor-pointer group"
+              >
+                <span
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold transition-colors shrink-0 ${
+                    bookingStep === 2
+                      ? 'bg-[#7463A6] text-white'
+                      : 'bg-[#F0F0EC] text-[#6E6E6A]'
+                  }`}
+                >
+                  2
+                </span>
+                <div>
+                  <div
+                    className={`text-[12.5px] font-medium leading-tight ${
+                      bookingStep === 2 ? 'text-[#1E1E1E]' : 'text-[#6E6E6A]'
+                    }`}
+                  >
+                    Payment & Confirmation
+                  </div>
+                  <div className="text-[11px] text-[#8E8E88]">
+                    Settlement & booking status
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
           {formError && (
             <div className="p-3 rounded-[10px] bg-[#FCECE9] text-[#B93829] text-[13px] font-medium">
               {formError}
             </div>
           )}
 
-          {/* 1. Returning Guest Lookup (Searchable, Optional) */}
-          {!editingBookingId && (
-            <div ref={guestLookupRef} className="relative">
-              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
-                Returning Guest Lookup
-              </label>
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-[#8E8E88] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={guestSearchQuery}
-                  onFocus={() => setGuestDropdownOpen(true)}
-                  onChange={(e) => {
-                    setGuestSearchQuery(e.target.value);
-                    setGuestDropdownOpen(true);
-                    if (!e.target.value.trim()) {
-                      setGuestIdInput('');
-                    }
-                  }}
-                  placeholder="Type guest name, phone number, or email to auto-fill..."
-                  className="w-full pl-9 pr-8 py-2 rounded-[10px] bg-white border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] placeholder:text-[#8E8E88] focus:outline-none focus:border-[#7463A6] transition-colors"
-                />
-                {(guestSearchQuery || guestIdInput) && (
-                  <button
-                    type="button"
-                    onClick={handleClearReturningGuest}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-[6px] text-[#8E8E88] hover:text-[#1E1E1E] hover:bg-[#F6F6F4] cursor-pointer"
-                    title="Clear guest selection"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {guestDropdownOpen && (
-                <div className="absolute left-0 right-0 mt-1 bg-white border border-[#E6E6E0] rounded-[11px] shadow-[0_12px_30px_rgba(0,0,0,0.1)] py-1 z-50 max-h-52 overflow-y-auto">
-                  {matchingGuests.length === 0 ? (
-                    <div className="px-3.5 py-2.5 text-[12.5px] font-normal text-[#6E6E6A]">
-                      No returning guest match — continue entering guest details below.
-                    </div>
-                  ) : (
-                    matchingGuests.map((g) => (
+          {bookingStep === 1 ? (
+            <>
+              {/* 1. Returning Guest Lookup (Searchable, Optional) */}
+              {!editingBookingId && (
+                <div ref={guestLookupRef} className="relative">
+                  <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                    Returning Guest Lookup
+                  </label>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-[#8E8E88] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={guestSearchQuery}
+                      onFocus={() => setGuestDropdownOpen(true)}
+                      onChange={(e) => {
+                        setGuestSearchQuery(e.target.value);
+                        setGuestDropdownOpen(true);
+                        if (!e.target.value.trim()) {
+                          setGuestIdInput('');
+                        }
+                      }}
+                      placeholder="Type guest name, phone number, or email to auto-fill..."
+                      className="w-full pl-9 pr-8 py-2 rounded-[10px] bg-white border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] placeholder:text-[#8E8E88] focus:outline-none focus:border-[#7463A6] transition-colors"
+                    />
+                    {(guestSearchQuery || guestIdInput) && (
                       <button
-                        key={g.id}
                         type="button"
-                        onClick={() => handleSelectReturningGuest(g.id)}
-                        className={`w-full px-3.5 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer ${
-                          guestIdInput === g.id
-                            ? 'bg-[#F1EEF8] text-[#7463A6]'
-                            : 'hover:bg-[#F6F6F4] text-[#1E1E1E]'
-                        }`}
+                        onClick={handleClearReturningGuest}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-[6px] text-[#8E8E88] hover:text-[#1E1E1E] hover:bg-[#F6F6F4] cursor-pointer"
+                        title="Clear guest selection"
                       >
-                        <div className="min-w-0">
-                          <div className="text-[13px] font-medium truncate">
-                            {g.name}{' '}
-                            <span className="text-[11.5px] font-normal text-[#6E6E6A] tabular-nums">
-                              · {g.phone}
-                            </span>
-                          </div>
-                          <div className="text-[11.5px] font-normal text-[#6E6E6A] truncate">
-                            {g.email || 'No email on file'}
-                          </div>
-                        </div>
-                        <UserCheck className="w-3.5 h-3.5 text-[#7463A6] shrink-0" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Row 2: Full Name | Phone Number | Email */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div>
-              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
-                Full Name <span className="text-[#B93829]">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
-                placeholder="e.g. Chidi Nwosu"
-                className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] focus:outline-none focus:border-[#7463A6]"
-              />
-            </div>
-            <div>
-              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
-                Phone Number
-              </label>
-              <input
-                type="text"
-                value={guestPhone}
-                onChange={(e) => setGuestPhone(e.target.value)}
-                placeholder="+234 803 412 8890"
-                className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] tabular-nums focus:outline-none focus:border-[#7463A6]"
-              />
-            </div>
-            <div>
-              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
-                Email
-              </label>
-              <input
-                type="email"
-                value={guestEmail}
-                onChange={(e) => setGuestEmail(e.target.value)}
-                placeholder="guest@company.com"
-                className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] focus:outline-none focus:border-[#7463A6]"
-              />
-            </div>
-          </div>
-
-          {/* Row 3: Room Type | Room Selection | Room Rate */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div>
-              <Dropdown
-                label="Room Type"
-                required
-                value={selectedRoomTypeId}
-                onChange={handleRoomTypeSelect}
-                options={roomTypes.map((rt) => ({
-                  value: rt.id,
-                  label: rt.name,
-                }))}
-              />
-            </div>
-
-            <div ref={roomSelectorRef} className="relative">
-              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
-                Room Selection <span className="text-[#B93829]">*</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setRoomDropdownOpen((o) => !o)}
-                className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[10px] bg-white border text-left transition-all cursor-pointer ${
-                  roomDropdownOpen
-                    ? 'border-[#7463A6] ring-2 ring-[#7463A6]/12'
-                    : 'border-[#E2E2DC] hover:border-[#C8C8C0]'
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  {selectedRoomObj ? (
-                    <div className="flex items-center justify-between gap-1.5">
-                      <span className="text-[13px] font-medium text-[#1E1E1E] truncate">
-                        Room {selectedRoomObj.roomNumber}
-                      </span>
-                      <span
-                        className={`text-[10.5px] font-medium px-1.5 py-0.5 rounded-[5px] shrink-0 ${
-                          selectedRoomAvailability.available
-                            ? 'bg-[#E9F5EE] text-[#16A34A]'
-                            : 'bg-[#FCECE9] text-[#B93829]'
-                        }`}
-                      >
-                        {selectedRoomAvailability.available ? 'Available' : 'Unavailable'}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-[13px] text-[#8E8E88]">Select room...</span>
-                  )}
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-[#6E6E6A] shrink-0 transition-transform ${
-                    roomDropdownOpen ? 'rotate-180 text-[#7463A6]' : ''
-                  }`}
-                />
-              </button>
-
-              {roomDropdownOpen && (
-                <div className="absolute left-0 right-0 mt-1 bg-white border border-[#E6E6E0] rounded-[11px] shadow-[0_12px_30px_rgba(0,0,0,0.12)] z-50 overflow-hidden min-w-[260px]">
-                  <div className="p-2 border-b border-[#F0F0EC]">
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-[#8E8E88] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        type="text"
-                        value={roomSearchQuery}
-                        onChange={(e) => setRoomSearchQuery(e.target.value)}
-                        placeholder="Search room number..."
-                        className="w-full pl-8 pr-3 py-1.5 rounded-[8px] bg-[#FAF9F6] border border-[#E2E2DC] text-[12.5px] font-normal text-[#1E1E1E] focus:outline-none focus:border-[#7463A6]"
-                      />
-                    </div>
+                    )}
                   </div>
-                  <div className="max-h-56 overflow-y-auto divide-y divide-[#F5F5F2]">
-                    {roomOptionsWithAvailability.length === 0 ? (
-                      <div className="px-3 py-2.5 text-[12px] text-[#6E6E6A]">
-                        No rooms found in this category.
-                      </div>
-                    ) : (
-                      roomOptionsWithAvailability.map((opt) => {
-                        const isSelected = opt.room.id === roomId;
-                        return (
+
+                  {guestDropdownOpen && (
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-[#E6E6E0] rounded-[11px] shadow-[0_12px_30px_rgba(0,0,0,0.1)] py-1 z-50 max-h-52 overflow-y-auto">
+                      {matchingGuests.length === 0 ? (
+                        <div className="px-3.5 py-2.5 text-[12.5px] font-normal text-[#6E6E6A]">
+                          No returning guest match — continue entering guest details below.
+                        </div>
+                      ) : (
+                        matchingGuests.map((g) => (
                           <button
-                            key={opt.room.id}
+                            key={g.id}
                             type="button"
-                            onClick={() => handleRoomSelect(opt.room.id)}
-                            className={`w-full px-3 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer ${
-                              isSelected
-                                ? 'bg-[#F1EEF8]'
-                                : opt.available
-                                ? 'hover:bg-[#F6F6F4]'
-                                : 'bg-[#FAF9F6]/70 hover:bg-[#F6F6F4]'
+                            onClick={() => handleSelectReturningGuest(g.id)}
+                            className={`w-full px-3.5 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                              guestIdInput === g.id
+                                ? 'bg-[#F1EEF8] text-[#7463A6]'
+                                : 'hover:bg-[#F6F6F4] text-[#1E1E1E]'
                             }`}
                           >
                             <div className="min-w-0">
-                              <div className="text-[13px] font-medium text-[#1E1E1E] truncate">
-                                Room {opt.room.roomNumber}{' '}
-                                <span className="text-[12px] font-normal text-[#6E6E6A] tabular-nums">
-                                  ({formatCurrency(opt.room.rate, sym)})
+                              <div className="text-[13px] font-medium truncate">
+                                {g.name}{' '}
+                                <span className="text-[11.5px] font-normal text-[#6E6E6A] tabular-nums">
+                                  · {g.phone}
                                 </span>
                               </div>
-                              <div
-                                className={`text-[11px] font-normal truncate ${
-                                  opt.available ? 'text-[#16A34A]' : 'text-[#B93829]'
-                                }`}
-                              >
-                                {opt.reason}
+                              <div className="text-[11.5px] font-normal text-[#6E6E6A] truncate">
+                                {g.email || 'No email on file'}
                               </div>
                             </div>
-                            <span
-                              className={`text-[10.5px] font-medium px-2 py-0.5 rounded-[6px] shrink-0 ${
-                                opt.available
-                                  ? 'bg-[#E9F5EE] text-[#16A34A]'
-                                  : 'bg-[#FCECE9] text-[#B93829]'
-                              }`}
-                            >
-                              {opt.available ? 'Available' : 'Conflict'}
-                            </span>
+                            <UserCheck className="w-3.5 h-3.5 text-[#7463A6] shrink-0" />
                           </button>
-                        );
-                      })
-                    )}
-                  </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
 
-            <div>
-              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
-                Room Rate
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={roomRate}
-                onChange={(e) => setRoomRate(Math.max(0, Number(e.target.value)))}
-                className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] tabular-nums focus:outline-none focus:border-[#7463A6]"
-              />
-            </div>
-          </div>
-
-          {/* Row 4: Number of Nights | Check-in Date | Check-in Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div>
-              <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
-                Number of Nights
-              </label>
-              <div className="flex items-center rounded-[10px] border border-[#E2E2DC] bg-white overflow-hidden focus-within:border-[#7463A6]">
-                <button
-                  type="button"
-                  onClick={() => handleDurationChange(computedNights - 1)}
-                  disabled={computedNights <= 1}
-                  className="px-2.5 py-2 text-[#4A4A46] hover:bg-[#F6F6F4] disabled:opacity-35 transition-colors cursor-pointer"
-                  aria-label="Decrease nights"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={computedNights}
-                  onChange={(e) => handleDurationChange(Number(e.target.value))}
-                  className="w-full text-center py-2 text-[13px] font-medium text-[#1E1E1E] tabular-nums focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDurationChange(computedNights + 1)}
-                  className="px-2.5 py-2 text-[#4A4A46] hover:bg-[#F6F6F4] transition-colors cursor-pointer"
-                  aria-label="Increase nights"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+              {/* Row 2: Full Name | Phone Number | Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                    Full Name <span className="text-[#B93829]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="e.g. Chidi Nwosu"
+                    className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] focus:outline-none focus:border-[#7463A6]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder="+234 803 412 8890"
+                    className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] tabular-nums focus:outline-none focus:border-[#7463A6]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    placeholder="guest@company.com"
+                    className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] focus:outline-none focus:border-[#7463A6]"
+                  />
+                </div>
               </div>
-            </div>
 
-            <CustomSingleDatePicker
-              label="Check-in Date"
-              required
-              value={checkInDate}
-              onChange={handleCheckInDateChange}
-            />
-
-            <CustomTimePicker
-              label="Check-in Time"
-              value={checkInTime}
-              onChange={setCheckInTime}
-              optional={true}
-              placeholder="Select time"
-              align="right"
-            />
-          </div>
-
-          {/* Row 5: Check-out Date | Check-out Time | Spacer */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <CustomSingleDatePicker
-              label="Check-out Date"
-              required
-              value={checkOutDate}
-              minDate={addDays(checkInDate, 1)}
-              onChange={handleCheckOutDateChange}
-            />
-
-            <CustomTimePicker
-              label="Check-out Time"
-              value={checkOutTime}
-              onChange={setCheckOutTime}
-              optional={true}
-              placeholder="Select time"
-            />
-
-            <div className="hidden sm:block" />
-          </div>
-
-          {/* Row 6: Payment Method | Payment Status | Booking Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <Dropdown
-              label="Payment Method"
-              value={paymentMethod}
-              onChange={(v) => setPaymentMethod(v as PaymentMethod)}
-              options={BOOKING_PAYMENT_METHODS.map((pm) => ({ value: pm, label: pm }))}
-            />
-
-            <Dropdown
-              label="Payment Status"
-              value={paymentStatus === 'Paid' ? 'Paid' : 'Unpaid'}
-              onChange={(v) => setPaymentStatus(v as PaymentStatus)}
-              options={[
-                { value: 'Paid', label: 'Paid' },
-                { value: 'Unpaid', label: 'Unpaid' },
-              ]}
-            />
-
-            <Dropdown
-              label="Booking Status"
-              value={bookingStatus}
-              onChange={(v) => setBookingStatus(v as BookingStatus)}
-              options={[
-                { value: 'Pending', label: 'Pending' },
-                { value: 'Confirmed', label: 'Confirmed' },
-                { value: 'Checked In', label: 'Checked In' },
-                { value: 'Checked Out', label: 'Checked Out' },
-                { value: 'Cancelled', label: 'Cancelled' },
-              ]}
-            />
-          </div>
-
-          {/* 16. Total Amount & 17. Confirm Reservation Button */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#EFEFEA]">
-            <div className="flex items-center gap-2.5">
-              <span className="text-[13px] text-[#6E6E6A]">Total Amount:</span>
-              <span className="text-[18px] font-semibold text-[#1E1E1E] tabular-nums">
-                {formatCurrency(computedTotal, sym)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setIsFormOpen(false)}
-                className="px-4 py-2 rounded-[10px] text-[13px] font-normal text-[#4A4A46] bg-[#F6F6F4] hover:bg-[#EAEAE4] transition-colors cursor-pointer"
+              {/* Row 3: Room Type (if any) | Room Selection | Room Rate */}
+              <div
+                className={`grid grid-cols-1 ${
+                  roomTypes.length > 0 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+                } gap-3.5`}
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 rounded-[10px] text-[13px] font-medium text-white bg-[#7463A6] hover:bg-[#635394] transition-colors cursor-pointer"
-              >
-                {editingBookingId ? 'Save Changes' : 'Confirm Reservation'}
-              </button>
-            </div>
-          </div>
+                {roomTypes.length > 0 && (
+                  <div>
+                    <Dropdown
+                      label="Room Type"
+                      value={selectedRoomTypeId}
+                      onChange={handleRoomTypeSelect}
+                      options={[
+                        { value: '', label: 'All Room Categories' },
+                        ...roomTypes.map((rt) => ({
+                          value: rt.id,
+                          label: rt.name,
+                        })),
+                      ]}
+                    />
+                  </div>
+                )}
+
+                <div ref={roomSelectorRef} className="relative">
+                  <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                    Room Selection <span className="text-[#B93829]">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setRoomDropdownOpen((o) => !o)}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[10px] bg-white border text-left transition-all cursor-pointer ${
+                      roomDropdownOpen
+                        ? 'border-[#7463A6] ring-2 ring-[#7463A6]/12'
+                        : 'border-[#E2E2DC] hover:border-[#C8C8C0]'
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      {selectedRoomObj ? (
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-[13px] font-medium text-[#1E1E1E] truncate">
+                            Room {selectedRoomObj.roomNumber}
+                          </span>
+                          <span
+                            className={`text-[10.5px] font-medium px-1.5 py-0.5 rounded-[5px] shrink-0 ${
+                              selectedRoomAvailability.available
+                                ? 'bg-[#E9F5EE] text-[#16A34A]'
+                                : 'bg-[#FCECE9] text-[#B93829]'
+                            }`}
+                          >
+                            {selectedRoomAvailability.available ? 'Available' : 'Unavailable'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[13px] text-[#8E8E88]">Select room...</span>
+                      )}
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-[#6E6E6A] shrink-0 transition-transform ${
+                        roomDropdownOpen ? 'rotate-180 text-[#7463A6]' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {roomDropdownOpen && (
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-[#E6E6E0] rounded-[11px] shadow-[0_12px_30px_rgba(0,0,0,0.12)] z-50 overflow-hidden min-w-[260px]">
+                      <div className="p-2 border-b border-[#F0F0EC]">
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 text-[#8E8E88] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={roomSearchQuery}
+                            onChange={(e) => setRoomSearchQuery(e.target.value)}
+                            placeholder="Search room number..."
+                            className="w-full pl-8 pr-3 py-1.5 rounded-[8px] bg-[#FAF9F6] border border-[#E2E2DC] text-[12.5px] font-normal text-[#1E1E1E] focus:outline-none focus:border-[#7463A6]"
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-56 overflow-y-auto divide-y divide-[#F5F5F2]">
+                        {roomOptionsWithAvailability.length === 0 ? (
+                          <div className="px-3 py-2.5 text-[12px] text-[#6E6E6A]">
+                            No rooms found in this category.
+                          </div>
+                        ) : (
+                          roomOptionsWithAvailability.map((opt) => {
+                            const isSelected = opt.room.id === roomId;
+                            return (
+                              <button
+                                key={opt.room.id}
+                                type="button"
+                                onClick={() => handleRoomSelect(opt.room.id)}
+                                className={`w-full px-3 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#F1EEF8]'
+                                    : opt.available
+                                    ? 'hover:bg-[#F6F6F4]'
+                                    : 'bg-[#FAF9F6]/70 hover:bg-[#F6F6F4]'
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="text-[13px] font-medium text-[#1E1E1E] truncate">
+                                    Room {opt.room.roomNumber}{' '}
+                                    <span className="text-[12px] font-normal text-[#6E6E6A] tabular-nums">
+                                      ({formatCurrency(opt.room.rate, sym)})
+                                    </span>
+                                  </div>
+                                  <div
+                                    className={`text-[11px] font-normal truncate ${
+                                      opt.available ? 'text-[#16A34A]' : 'text-[#B93829]'
+                                    }`}
+                                  >
+                                    {opt.reason}
+                                  </div>
+                                </div>
+                                <span
+                                  className={`text-[10.5px] font-medium px-2 py-0.5 rounded-[6px] shrink-0 ${
+                                    opt.available
+                                      ? 'bg-[#E9F5EE] text-[#16A34A]'
+                                      : 'bg-[#FCECE9] text-[#B93829]'
+                                  }`}
+                                >
+                                  {opt.available ? 'Available' : 'Conflict'}
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                    Room Rate
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={roomRate}
+                    onChange={(e) => setRoomRate(Math.max(0, Number(e.target.value)))}
+                    className="w-full px-3 py-2 rounded-[10px] border border-[#E2E2DC] text-[13px] font-normal text-[#1E1E1E] tabular-nums focus:outline-none focus:border-[#7463A6]"
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Number of Nights | Check-in Date | Check-in Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-[12px] font-normal text-[#4A4A46] mb-1.5">
+                    Number of Nights
+                  </label>
+                  <div className="flex items-center rounded-[10px] border border-[#E2E2DC] bg-white overflow-hidden focus-within:border-[#7463A6]">
+                    <button
+                      type="button"
+                      onClick={() => handleDurationChange(computedNights - 1)}
+                      disabled={computedNights <= 1}
+                      className="px-2.5 py-2 text-[#4A4A46] hover:bg-[#F6F6F4] disabled:opacity-35 transition-colors cursor-pointer"
+                      aria-label="Decrease nights"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={computedNights}
+                      onChange={(e) => handleDurationChange(Number(e.target.value))}
+                      className="w-full text-center py-2 text-[13px] font-medium text-[#1E1E1E] tabular-nums focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDurationChange(computedNights + 1)}
+                      className="px-2.5 py-2 text-[#4A4A46] hover:bg-[#F6F6F4] transition-colors cursor-pointer"
+                      aria-label="Increase nights"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <CustomSingleDatePicker
+                  label="Check-in Date"
+                  required
+                  value={checkInDate}
+                  onChange={handleCheckInDateChange}
+                />
+
+                <CustomTimePicker
+                  label="Check-in Time"
+                  value={checkInTime}
+                  onChange={setCheckInTime}
+                  optional={true}
+                  placeholder="Select time"
+                  align="right"
+                />
+              </div>
+
+              {/* Row 5: Check-out Date | Check-out Time | Spacer */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <CustomSingleDatePicker
+                  label="Check-out Date"
+                  required
+                  value={checkOutDate}
+                  minDate={addDays(checkInDate, 1)}
+                  onChange={handleCheckOutDateChange}
+                />
+
+                <CustomTimePicker
+                  label="Check-out Time"
+                  value={checkOutTime}
+                  onChange={setCheckOutTime}
+                  optional={true}
+                  placeholder="Select time"
+                />
+
+                <div className="hidden sm:block" />
+              </div>
+
+              {/* Step 1 Footer */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#EFEFEA]">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[13px] text-[#6E6E6A]">Estimated Total:</span>
+                  <span className="text-[17px] font-semibold text-[#1E1E1E] tabular-nums">
+                    {formatCurrency(computedTotal, sym)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsFormOpen(false)}
+                    className="px-4 py-2 rounded-[10px] text-[13px] font-normal text-[#4A4A46] bg-[#F6F6F4] hover:bg-[#EAEAE4] transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="px-5 py-2 rounded-[10px] text-[13px] font-medium text-white bg-[#7463A6] hover:bg-[#635394] transition-colors cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Step 2: Stay & Billing Summary Banner */}
+              <div className="p-4 rounded-[12px] bg-[#FAF9F6] border border-[#E6E6E0] space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[11.5px] text-[#6E6E6A]">Guest</div>
+                    <div className="text-[14px] font-semibold text-[#1E1E1E]">
+                      {guestName || 'Guest'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[11.5px] text-[#6E6E6A]">Assigned Room</div>
+                    <div className="text-[14px] font-semibold text-[#1E1E1E]">
+                      {selectedRoomObj ? `Room ${selectedRoomObj.roomNumber}` : '—'}
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-2.5 border-t border-[#EFEFEA] flex flex-wrap items-center justify-between gap-2 text-[12.5px] text-[#4A4A46]">
+                  <span>
+                    {formatDateReadable(checkInDate)} → {formatDateReadable(checkOutDate)} (
+                    {computedNights} {computedNights === 1 ? 'night' : 'nights'})
+                  </span>
+                  <span className="tabular-nums">
+                    Rate: {formatCurrency(roomRate, sym)} / night
+                  </span>
+                </div>
+              </div>
+
+              {/* Payment Method | Payment Status | Booking Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <Dropdown
+                  label="Payment Method"
+                  value={paymentMethod}
+                  onChange={(v) => setPaymentMethod(v as PaymentMethod)}
+                  options={BOOKING_PAYMENT_METHODS.map((pm) => ({ value: pm, label: pm }))}
+                />
+
+                <Dropdown
+                  label="Payment Status"
+                  value={paymentStatus === 'Paid' ? 'Paid' : 'Unpaid'}
+                  onChange={(v) => setPaymentStatus(v as PaymentStatus)}
+                  options={[
+                    { value: 'Paid', label: 'Paid' },
+                    { value: 'Unpaid', label: 'Unpaid' },
+                  ]}
+                />
+
+                <Dropdown
+                  label="Booking Status"
+                  value={bookingStatus}
+                  onChange={(v) => setBookingStatus(v as BookingStatus)}
+                  options={[
+                    { value: 'Pending', label: 'Pending' },
+                    { value: 'Confirmed', label: 'Confirmed' },
+                    { value: 'Checked In', label: 'Checked In' },
+                    { value: 'Checked Out', label: 'Checked Out' },
+                    { value: 'Cancelled', label: 'Cancelled' },
+                  ]}
+                />
+              </div>
+
+              {/* Step 2 Footer: Total Amount, Back & Confirm Booking */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#EFEFEA]">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[13px] text-[#6E6E6A]">Total Amount:</span>
+                  <span className="text-[18px] font-semibold text-[#1E1E1E] tabular-nums">
+                    {formatCurrency(computedTotal, sym)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setBookingStep(1)}
+                    className="px-4 py-2 rounded-[10px] text-[13px] font-medium text-[#4A4A46] bg-[#F6F6F4] hover:bg-[#EAEAE4] transition-colors cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-[10px] text-[13px] font-medium text-white bg-[#7463A6] hover:bg-[#635394] transition-colors cursor-pointer"
+                  >
+                    {editingBookingId ? 'Save Changes' : 'Confirm Booking'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </form>
       </Modal>
 

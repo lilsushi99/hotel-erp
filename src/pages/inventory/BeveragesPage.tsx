@@ -46,6 +46,8 @@ export const BeveragesPage: React.FC = () => {
     updateBeverage,
     deleteBeverage,
     recordStockOperation,
+    canManageInventory,
+    hasPermission,
   } = useHotel();
 
   const [search, setSearch] = useState('');
@@ -207,10 +209,12 @@ export const BeveragesPage: React.FC = () => {
       <PageHeader
         title="Beverage Inventory"
         actions={
-          <PrimaryButton onClick={openNewModal}>
-            <Plus className="w-4 h-4" />
-            Add Beverage Item
-          </PrimaryButton>
+          canManageInventory ? (
+            <PrimaryButton onClick={openNewModal}>
+              <Plus className="w-4 h-4" />
+              Add Beverage Item
+            </PrimaryButton>
+          ) : undefined
         }
       />
 
@@ -361,22 +365,26 @@ export const BeveragesPage: React.FC = () => {
                           <StatusBadge status={status} />
                         </td>
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              onClick={() => openEditModal(bev)}
-                              title="Edit Beverage"
-                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6] cursor-pointer"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteBeverage(bev.id)}
-                              title="Delete Beverage"
-                              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {canManageInventory && (
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                onClick={() => openEditModal(bev)}
+                                title="Edit Beverage"
+                                className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111111] hover:bg-[#F3F4F6] cursor-pointer"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              {hasPermission('Delete') && (
+                                <button
+                                  onClick={() => deleteBeverage(bev.id)}
+                                  title="Delete Beverage"
+                                  className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

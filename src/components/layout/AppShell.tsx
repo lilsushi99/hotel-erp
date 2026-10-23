@@ -30,6 +30,7 @@ import {
   User,
   ShieldCheck,
   ChevronRight,
+  ChevronDown,
   FileSpreadsheet,
   BarChart3,
 } from 'lucide-react';
@@ -343,6 +344,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     staff,
     currentUser,
     setCurrentUserId,
+    canAccessRoute,
   } = useHotel();
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -399,9 +401,35 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
   const visibleNavGroups = useMemo(() => {
     return NAV_GROUPS.map((group) => ({
       ...group,
-      items: group.items.filter((item) => isModuleEnabled(item.moduleId)),
+      items: group.items.filter(
+        (item) => isModuleEnabled(item.moduleId) && canAccessRoute(item.path)
+      ),
     })).filter((group) => group.items.length > 0);
-  }, [optionalModules]);
+  }, [optionalModules, canAccessRoute]);
+
+  const isCollapsedNavMode = settings.sidebarNavigationMode === 'collapsed';
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    NAV_GROUPS.forEach((g) => {
+      initial[g.label] = settings.sidebarNavigationMode !== 'collapsed';
+    });
+    return initial;
+  });
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    NAV_GROUPS.forEach((g) => {
+      next[g.label] = settings.sidebarNavigationMode !== 'collapsed';
+    });
+    setExpandedGroups(next);
+  }, [settings.sidebarNavigationMode]);
+
+  const toggleGroupExpand = (label: string) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
 
   // Consolidated live operational alerts list respecting HotelSettings notification toggles
   const allAlertItems = useMemo<OperationalAlertItem[]>(() => {
@@ -797,7 +825,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         });
       });
 
-    return results;
+    return results.filter((r) => canAccessRoute(r.path));
   }, [
     searchQuery,
     bookings,
@@ -810,6 +838,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     laundryOrders,
     posTransactions,
     settings.currencySymbol,
+    canAccessRoute,
   ]);
 
   const groupedSearchResults = useMemo(() => {
@@ -853,8 +882,12 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         .bg-\\[\\#7463A6\\], .bg-\\[\\#7D53DE\\] {
           background-color: var(--accent-color) !important;
         }
-        .hover\\:bg-\\[\\#635394\\]:hover, .hover\\:bg-\\[\\#6942C6\\]:hover {
+        .hover\\:bg-\\[\\#635394\\]:hover, .hover\\:bg-\\[\\#6942C6\\]:hover, .hover\\:bg-\\[\\#6B43C8\\]:hover {
           background-color: var(--accent-hover) !important;
+        }
+        .hover\\:bg-\\[\\#7463A6\\]:hover {
+          background-color: var(--accent-color) !important;
+          color: #ffffff !important;
         }
         .text-\\[\\#7463A6\\], .text-\\[\\#7D53DE\\] {
           color: var(--accent-color) !important;
@@ -862,8 +895,11 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         .border-\\[\\#7463A6\\], .border-\\[\\#7D53DE\\] {
           border-color: var(--accent-color) !important;
         }
-        .focus\\:border-\\[\\#7463A6\\]:focus {
+        .focus\\:border-\\[\\#7463A6\\]:focus, .focus\\:border-\\[\\#7D53DE\\]:focus {
           border-color: var(--accent-color) !important;
+        }
+        .ring-\\[\\#7463A6\\]\\/25, .ring-\\[\\#7463A6\\]\\/12 {
+          --tw-ring-color: var(--accent-border) !important;
         }
         .bg-\\[\\#F1EEF8\\], .bg-\\[\\#F3EEFF\\] {
           background-color: var(--accent-soft) !important;
@@ -925,6 +961,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
                   (item.path === '/overview' && location.pathname === '/')
               );
               const hasActiveChild = activeChildIndex !== -1;
+              const isGroupExpanded = expandedGroups[group.label] ?? !isCollapsedNavMode;
 
               if (group.label === 'Command Center' && group.items.length === 1) {
                 const item = group.items[0];
@@ -955,122 +992,199 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
 
               return (
                 <div key={group.label} className="space-y-1">
-                  {/* Parent Header — Clean category name without folder/box icon */}
-                  <div
-                    className={`flex items-center px-3 py-1.5 rounded-[11px] text-[12.5px] transition-all select-none ${
+                  {/* Parent Header — Clickable category header to expand/collapse */}
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupExpand(group.label)}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 rounded-[11px] text-[12.5px] transition-all select-none cursor-pointer ${
                       hasActiveChild
                         ? 'bg-white border-[1.5px] border-[#E2E2DC] shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] text-[#1E1E1E] font-medium'
-                        : 'text-[#6E6E6A] font-normal'
+                        : 'text-[#6E6E6A] font-normal hover:bg-[#F5F5F3] hover:text-[#1E1E1E]'
                     }`}
                   >
                     <span className="truncate">{group.label}</span>
-                  </div>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-[#9E9E96] transition-transform duration-150 ${
+                        isGroupExpanded ? 'rotate-0' : '-rotate-90'
+                      }`}
+                    />
+                  </button>
 
                   {/* Child Items with Rib-Cage Connectors */}
-                  <div className="relative pl-5 space-y-0.5">
-                    {group.items.map((item, idx) => {
-                      const Icon = item.icon;
-                      const isActive = location.pathname === item.path;
-                      const isLast = idx === group.items.length - 1;
-                      const isBeforeActive =
-                        hasActiveChild && idx < activeChildIndex;
+                  {isGroupExpanded && (
+                    <div className="relative pl-5 space-y-0.5">
+                      {group.items.map((item, idx) => {
+                        const Icon = item.icon;
+                        const isActive = location.pathname === item.path;
+                        const isLast = idx === group.items.length - 1;
+                        const isBeforeActive =
+                          hasActiveChild && idx < activeChildIndex;
 
-                      return (
-                        <div key={item.path} className="relative flex items-center">
-                          {/* Vertical spine segment — accent-colored along path leading to active child */}
-                          {isActive ? (
-                            <>
-                              <span
-                                className="pointer-events-none absolute -left-2.5 top-0 w-[1.5px] bg-[#7463A6] z-10"
-                                style={{ height: '50%' }}
-                              />
-                              {!isLast && (
+                        return (
+                          <div key={item.path} className="relative flex items-center">
+                            {/* Vertical spine segment — accent-colored along path leading to active child */}
+                            {isActive ? (
+                              <>
                                 <span
-                                  className="pointer-events-none absolute -left-2.5 top-1/2 w-[1.5px] bg-[#DCDCD4]"
+                                  className="pointer-events-none absolute -left-2.5 top-0 w-[1.5px] bg-[#7463A6] z-10"
                                   style={{ height: '50%' }}
                                 />
-                              )}
-                            </>
-                          ) : (
+                                {!isLast && (
+                                  <span
+                                    className="pointer-events-none absolute -left-2.5 top-1/2 w-[1.5px] bg-[#DCDCD4]"
+                                    style={{ height: '50%' }}
+                                  />
+                                )}
+                              </>
+                            ) : (
+                              <span
+                                className={`pointer-events-none absolute -left-2.5 top-0 w-[1.5px] ${
+                                  isBeforeActive ? 'bg-[#7463A6] z-10' : 'bg-[#DCDCD4]'
+                                }`}
+                                style={{ height: isLast ? '50%' : '100%' }}
+                              />
+                            )}
+
+                            {/* Curved rib connector */}
                             <span
-                              className={`pointer-events-none absolute -left-2.5 top-0 w-[1.5px] ${
-                                isBeforeActive ? 'bg-[#7463A6] z-10' : 'bg-[#DCDCD4]'
-                              }`}
-                              style={{ height: isLast ? '50%' : '100%' }}
-                            />
-                          )}
-
-                          {/* Curved rib connector */}
-                          <span
-                            className={`pointer-events-none absolute -left-2.5 top-0 w-2.5 h-1/2 border-l-[1.5px] border-b-[1.5px] rounded-bl-[7px] ${
-                              isActive
-                                ? 'border-[#7463A6] z-10'
-                                : 'border-[#DCDCD4]'
-                            }`}
-                          />
-
-                          <NavLink
-                            to={item.path}
-                            onClick={() => setMobileSidebarOpen(false)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] text-[12.5px] transition-all ${
-                              isActive
-                                ? 'bg-[#F1EEF8] text-[#7463A6] font-medium'
-                                : 'text-[#5A5A55] font-normal hover:bg-[#F5F5F3] hover:text-[#1E1E1E]'
-                            }`}
-                          >
-                            <Icon
-                              className={`w-3.5 h-3.5 shrink-0 ${
-                                isActive ? 'text-[#7463A6]' : 'text-[#7E7E78]'
+                              className={`pointer-events-none absolute -left-2.5 top-0 w-2.5 h-1/2 border-l-[1.5px] border-b-[1.5px] rounded-bl-[7px] ${
+                                isActive
+                                  ? 'border-[#7463A6] z-10'
+                                  : 'border-[#DCDCD4]'
                               }`}
                             />
-                            <span className="truncate">{item.label}</span>
-                          </NavLink>
-                        </div>
-                      );
-                    })}
-                  </div>
+
+                            <NavLink
+                              to={item.path}
+                              onClick={() => setMobileSidebarOpen(false)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] text-[12.5px] transition-all ${
+                                isActive
+                                  ? 'bg-[#F1EEF8] text-[#7463A6] font-medium'
+                                  : 'text-[#5A5A55] font-normal hover:bg-[#F5F5F3] hover:text-[#1E1E1E]'
+                              }`}
+                            >
+                              <Icon
+                                className={`w-3.5 h-3.5 shrink-0 ${
+                                  isActive ? 'text-[#7463A6]' : 'text-[#7E7E78]'
+                                }`}
+                              />
+                              <span className="truncate">{item.label}</span>
+                            </NavLink>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </nav>
         ) : (
-          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-            {visibleNavGroups.map((group) => (
-              <div key={group.label}>
-                <div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
-                  {group.label}
-                </div>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const isActive =
-                      location.pathname === item.path ||
-                      (item.path === '/overview' && location.pathname === '/');
-                    return (
-                      <NavLink
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setMobileSidebarOpen(false)}
-                        className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
+          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+            {visibleNavGroups.map((group) => {
+              const hasActiveChild = group.items.some(
+                (item) =>
+                  location.pathname === item.path ||
+                  (item.path === '/overview' && location.pathname === '/')
+              );
+              const isGroupExpanded = expandedGroups[group.label] ?? !isCollapsedNavMode;
+
+              if (group.label === 'Command Center' && group.items.length === 1) {
+                const item = group.items[0];
+                const Icon = item.icon;
+                const isActive =
+                  location.pathname === item.path || location.pathname === '/';
+                return (
+                  <div key={group.label}>
+                    <NavLink
+                      to={item.path}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
+                        isActive
+                          ? 'bg-[#7463A6] text-white font-semibold shadow-[0_2px_8px_rgba(116,99,166,0.22)]'
+                          : 'text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111111]'
+                      }`}
+                    >
+                      <Icon
+                        className={`w-4 h-4 shrink-0 transition-colors ${
                           isActive
-                            ? 'bg-[#7463A6] text-white font-semibold shadow-[0_2px_8px_rgba(116,99,166,0.22)]'
-                            : 'text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111111]'
+                            ? 'text-white'
+                            : 'text-[#6B7280] group-hover:text-[#111111]'
                         }`}
-                      >
-                        <Icon
-                          className={`w-4 h-4 shrink-0 transition-colors ${
-                            isActive
-                              ? 'text-white'
-                              : 'text-[#6B7280] group-hover:text-[#111111]'
-                          }`}
-                        />
-                        <span className="truncate">{item.label}</span>
-                      </NavLink>
-                    );
-                  })}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </NavLink>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={group.label}>
+                  {isCollapsedNavMode ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleGroupExpand(group.label)}
+                      className={`w-full flex items-center justify-between px-3 py-2 mb-1 rounded-xl text-[12.5px] font-semibold transition-all cursor-pointer ${
+                        hasActiveChild
+                          ? 'bg-[#F1EEF8] text-[#7463A6]'
+                          : 'text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111111]'
+                      }`}
+                    >
+                      <span className="truncate">{group.label}</span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                          isGroupExpanded ? 'rotate-0' : '-rotate-90'
+                        }`}
+                      />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleGroupExpand(group.label)}
+                      className="w-full flex items-center justify-between px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF] hover:text-[#4B5563] cursor-pointer"
+                    >
+                      <span>{group.label}</span>
+                      <ChevronDown
+                        className={`w-3 h-3 transition-transform duration-150 ${
+                          isGroupExpanded ? 'rotate-0' : '-rotate-90'
+                        }`}
+                      />
+                    </button>
+                  )}
+                  {isGroupExpanded && (
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive =
+                          location.pathname === item.path ||
+                          (item.path === '/overview' && location.pathname === '/');
+                        return (
+                          <NavLink
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setMobileSidebarOpen(false)}
+                            className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
+                              isActive
+                                ? 'bg-[#7463A6] text-white font-semibold shadow-[0_2px_8px_rgba(116,99,166,0.22)]'
+                                : 'text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111111]'
+                            }`}
+                          >
+                            <Icon
+                              className={`w-4 h-4 shrink-0 transition-colors ${
+                                isActive
+                                  ? 'text-white'
+                                  : 'text-[#6B7280] group-hover:text-[#111111]'
+                              }`}
+                            />
+                            <span className="truncate">{item.label}</span>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
         )}
 
